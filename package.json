@@ -10,7 +10,11 @@
     "prepublishOnly": "npm run build"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=18",
+    "homebridge": "^1.6.0"
+  },
+  "peerDependencies": {
+    "homebridge": "^1.6.0"
   },
   "keywords": [
     "homebridge-plugin",
@@ -24,13 +28,13 @@
     "config.schema.json"
   ],
   "dependencies": {
-    "homebridge": "^1.11.3",
     "node-roon-api": "github:RoonLabs/node-roon-api",
     "node-roon-api-browse": "github:RoonLabs/node-roon-api-browse",
     "node-roon-api-transport": "github:RoonLabs/node-roon-api-transport"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "homebridge": "^1.11.3",
     "typescript": "^5.7.2"
   }
 }
