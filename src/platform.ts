@@ -76,6 +76,9 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       }
     });
 
+    // Register zone speakers immediately. refreshBrowseLists() can take minutes (deep Roon browse);
+    // if it ran first, no accessories appeared in Homebridge/Home until it finished or hung.
+    await this.syncAccessories();
     await this.roon.refreshBrowseLists().catch((e) => this.log.warn('Browse lists:', e));
     await this.syncAccessories();
     this.prevZoneKey = [...this.roon.getZones().map((z) => z.zone_id)].sort().join('|');
@@ -91,6 +94,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
   private async onZoneTopologyChanged(): Promise<void> {
     if (!this.roon) return;
+    await this.syncAccessories();
     await this.roon.refreshBrowseLists().catch((e) => this.log.warn('Browse lists:', e));
     await this.syncAccessories();
   }
@@ -100,6 +104,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     if (!this.roon) return;
     this.log.info('Roon: session restored — refreshing browse lists and accessories');
     this.prevZoneKey = null;
+    await this.syncAccessories();
     await this.roon.refreshBrowseLists().catch((e) => this.log.warn('Browse lists:', e));
     await this.syncAccessories();
     this.prevZoneKey = [...this.roon.getZones().map((z) => z.zone_id)].sort().join('|');
