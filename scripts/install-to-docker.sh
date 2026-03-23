@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
 # Install / update homebridge-roon-complete inside a Homebridge Docker container.
 #
-# Official Homebridge Docker often sets NODE_PATH=/homebridge/node_modules, so plugins must live
-# next to e.g. homebridge-cmdswitch2 — not only under $(npm root -g) for another user. This script
-# installs only under /homebridge/node_modules/homebridge-roon-complete (no npm install -g).
+# How the official Homebridge Docker image works:
+#   hb-service runs on start and calls `npm install --prefix /var/lib/homebridge`, reading
+#   /var/lib/homebridge/package.json (= /homebridge/package.json on the volume). Any package
+#   NOT listed there is pruned. We therefore register the plugin as a "file:" dependency in
+#   that file — the same mechanism the UI uses for npm-registry plugins.
 #
 # Usage (on the Ubuntu host, from the plugin repo root after `npm run build`):
 #   ./scripts/install-to-docker.sh
 #   HOMEBRIDGE_CONTAINER=mycontainer ./scripts/install-to-docker.sh /path/to/homebridge-roon-plugin
 #
-# Or copy the repo to the server first, then:
-#   cd /path/to/homebridge-roon-plugin && npm ci && npm run build && ./scripts/install-to-docker.sh
-#
 set -euo pipefail
 
 CONTAINER="${HOMEBRIDGE_CONTAINER:-homebridge}"
 SRC="${1:-$(cd "$(dirname "$0")/.." && pwd)}"
-TARGET="/homebridge/node_modules/homebridge-roon-complete"
+
+# Where hb-service keeps the plugin store inside the container.
+# This matches HB_SERVICE_STORAGE_PATH in /opt/homebridge/start.sh.
+HB_STORE="/var/lib/homebridge"
 
 if ! docker inspect "$CONTAINER" &>/dev/null; then
   echo "Container '$CONTAINER' not found. Set HOMEBRIDGE_CONTAINER or run: docker ps"
@@ -28,54 +30,87 @@ if [[ ! -d "$SRC/dist" ]] || [[ ! -f "$SRC/package.json" ]]; then
   exit 1
 fi
 
-# Prefer copying into the host directory that is bind-mounted at /homebridge. docker cp into a
-# mounted volume can be unreliable on some setups; startup scripts may also replace node_modules
-# if files were not written to the actual volume.
-HOST_HOME_BRIDGE="$(docker inspect "$CONTAINER" --format '{{range .Mounts}}{{if eq .Destination "/homebridge"}}{{.Source}}{{end}}{{end}}' 2>/dev/null || true)"
-HOST_PLUGIN=""
-if [[ -n "$HOST_HOME_BRIDGE" && -d "$HOST_HOME_BRIDGE" ]]; then
-  HOST_PLUGIN="${HOST_HOME_BRIDGE}/node_modules/homebridge-roon-complete"
-  echo "[1/3] Copying via host mount $HOST_PLUGIN (from $SRC)"
-  mkdir -p "$HOST_PLUGIN/dist"
-  cp -a "$SRC/dist/." "$HOST_PLUGIN/dist/"
-  cp "$SRC/package.json" "$HOST_PLUGIN/package.json"
-  cp "$SRC/config.schema.json" "$HOST_PLUGIN/config.schema.json"
+# Resolve the host directory that backs the homebridge volume. Prefer writing
+# directly to the host path so changes land on the real volume before the container
+# starts again (docker cp can bypass the bind mount in some setups).
+HOST_HB="$(docker inspect "$CONTAINER" \
+  --format '{{range .Mounts}}{{if eq .Destination "/homebridge"}}{{.Source}}{{end}}{{end}}' 2>/dev/null || true)"
+
+# The plugin source lives inside the volume as a named sub-directory so the
+# file: reference in package.json always resolves correctly.
+PLUGIN_SUBDIR="homebridge-roon-complete-src"
+PLUGIN_IN_CONTAINER="${HB_STORE}/${PLUGIN_SUBDIR}"
+
+echo "[1/4] Copying plugin source into ${PLUGIN_SUBDIR} on the volume"
+if [[ -n "$HOST_HB" && -d "$HOST_HB" ]]; then
+  DEST="${HOST_HB}/${PLUGIN_SUBDIR}"
+  echo "      -> host path: $DEST"
+  mkdir -p "$DEST/dist"
+  cp -a "$SRC/dist/." "$DEST/dist/"
+  cp "$SRC/package.json" "$DEST/package.json"
+  cp "$SRC/config.schema.json" "$DEST/config.schema.json"
 else
-  echo "[1/3] Copying with docker cp into $CONTAINER:$TARGET (from $SRC)"
-  echo "  (No resolvable host bind mount for /homebridge — if files vanish after restart, inspect: docker inspect $CONTAINER --format '{{json .Mounts}}')"
-  docker exec "$CONTAINER" mkdir -p "$TARGET/dist"
-  docker cp "$SRC/dist/." "$CONTAINER:$TARGET/dist/"
-  docker cp "$SRC/package.json" "$CONTAINER:$TARGET/package.json"
-  docker cp "$SRC/config.schema.json" "$CONTAINER:$TARGET/config.schema.json"
+  echo "      -> docker cp (no host bind mount found for /homebridge)"
+  docker exec "$CONTAINER" mkdir -p "$PLUGIN_IN_CONTAINER/dist"
+  docker cp "$SRC/dist/." "$CONTAINER:$PLUGIN_IN_CONTAINER/dist/"
+  docker cp "$SRC/package.json" "$CONTAINER:$PLUGIN_IN_CONTAINER/package.json"
+  docker cp "$SRC/config.schema.json" "$CONTAINER:$PLUGIN_IN_CONTAINER/config.schema.json"
 fi
 
-if ! docker exec "$CONTAINER" test -f "$TARGET/package.json"; then
-  echo "ERROR: $TARGET/package.json not visible in container after copy."
-  echo "  Mount: ${HOST_HOME_BRIDGE:-unknown}"
+if ! docker exec "$CONTAINER" test -f "$PLUGIN_IN_CONTAINER/package.json"; then
+  echo "ERROR: $PLUGIN_IN_CONTAINER/package.json not visible in container."
   exit 1
 fi
 
-echo "[2/3] npm install dependencies in plugin folder (needs network for GitHub Roon deps)..."
-docker exec "$CONTAINER" npm install --omit=dev --prefix "$TARGET"
+echo "[2/4] Installing plugin's own npm dependencies (node-roon-api etc.)..."
+docker exec "$CONTAINER" npm install --omit=dev --prefix "$PLUGIN_IN_CONTAINER"
 
-if ! docker exec "$CONTAINER" test -f "$TARGET/package.json"; then
-  echo "ERROR: $TARGET/package.json missing after npm install --prefix."
+echo "[3/4] Registering plugin in ${HB_STORE}/package.json via file: reference..."
+# Read current package.json (create a minimal one if it doesn't exist yet), add/update
+# the homebridge-roon-complete entry, and write it back.
+docker exec "$CONTAINER" sh -c "
+  PKG=${HB_STORE}/package.json
+  if [ ! -f \"\$PKG\" ]; then
+    echo '{\"private\":true,\"dependencies\":{}}' > \"\$PKG\"
+  fi
+  tmp=\$(mktemp)
+  jq '.dependencies[\"homebridge-roon-complete\"] = \"file:./${PLUGIN_SUBDIR}\"' \"\$PKG\" > \"\$tmp\" && mv \"\$tmp\" \"\$PKG\"
+  echo 'Updated package.json:'
+  jq '.dependencies | keys' \"\$PKG\"
+"
+
+# Run npm install so the file: symlink is created in node_modules/ now (before restart).
+docker exec "$CONTAINER" npm install \
+  --prefix "$HB_STORE" \
+  --omit=dev \
+  --no-audit \
+  --no-fund \
+  2>&1 | grep -v "^npm warn\|^npm notice" || true
+
+if ! docker exec "$CONTAINER" test -f "${HB_STORE}/node_modules/homebridge-roon-complete/package.json"; then
+  echo "ERROR: node_modules/homebridge-roon-complete/package.json not found after npm install."
+  echo "  Run manually: docker exec $CONTAINER npm install --prefix $HB_STORE"
   exit 1
 fi
 
-echo "[3/3] Restarting container (brief Homebridge outage)..."
+echo "[4/4] Restarting container..."
 docker restart "$CONTAINER"
-sleep 2
-if ! docker exec "$CONTAINER" test -f "$TARGET/package.json"; then
-  echo "WARNING: $TARGET/package.json disappeared after restart."
-  echo "  Your image may reset node_modules on boot. Install on the host path that maps to /homebridge"
-  echo "  (see docker inspect Mounts), or add this plugin via a method your image supports."
-  exit 1
+sleep 3
+
+echo ""
+echo "Checking post-restart..."
+if docker exec "$CONTAINER" test -f "${HB_STORE}/node_modules/homebridge-roon-complete/package.json"; then
+  echo "  plugin in node_modules: OK"
+else
+  echo "  WARNING: plugin disappeared from node_modules after restart — unexpected."
 fi
 
-echo "Done."
-echo "If you still see 'No plugin was found for the platform RoonComplete':"
-echo "  1. If config.json has a top-level \"plugins\" array (plugin whitelist), add: \"homebridge-roon-complete\""
-echo "  2. Check: docker exec $CONTAINER test -f $TARGET/package.json && docker logs $CONTAINER 2>&1 | grep 'Loaded plugin: homebridge-roon'"
-echo "  3. Smoke test: docker exec $CONTAINER node -e \"require('$TARGET')\""
-echo "  4. Full log: docker logs $CONTAINER 2>&1 | grep -E 'homebridge-roon|RoonComplete|ERROR LOADING PLUGIN'"
+LOADED="$(docker logs "$CONTAINER" 2>&1 | grep 'Loaded plugin: homebridge-roon-complete' | tail -1)"
+if [[ -n "$LOADED" ]]; then
+  echo "  $LOADED"
+  echo ""
+  echo "Done. Homebridge loaded the plugin successfully."
+else
+  echo "  'Loaded plugin: homebridge-roon-complete' not yet in log (may still be starting)."
+  echo "  Run: docker logs $CONTAINER 2>&1 | grep -E 'homebridge-roon|RoonComplete|ERROR LOADING PLUGIN'"
+fi

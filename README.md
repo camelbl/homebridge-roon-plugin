@@ -35,7 +35,13 @@ On the **Ubuntu server** (Docker and default container name `homebridge`):
    HOMEBRIDGE_CONTAINER=your_container_name ./scripts/install-to-docker.sh
    ```
 
-The script copies `dist/`, `package.json`, and `config.schema.json` into **`/homebridge/node_modules/homebridge-roon-complete/`** (same tree as UI-installed plugins such as `homebridge-cmdswitch2`), runs `npm install --omit=dev` there, and restarts the container. If Docker reports a **host bind mount** for `/homebridge`, the script copies **into that host path** first (more reliable than `docker cp` alone). The official image often uses **`NODE_PATH=/homebridge/node_modules`**; **`npm install -g` is not used** because a global copy under `/opt/homebridge/lib/node_modules` may be ignored by the running Homebridge process.
+The script:
+
+1. Copies `dist/`, `package.json`, and `config.schema.json` into **`homebridge-roon-complete-src/`** inside the volume (directly via the bind-mount host path when available, so writes land on the real volume).
+2. Runs `npm install --omit=dev` in that directory to fetch the Roon API dependencies.
+3. **Registers the plugin in `/var/lib/homebridge/package.json`** using a `file:` reference — the same mechanism the Homebridge UI uses for npm-registry plugins. Without this step, the `hb-service` startup's `npm install` pass prunes any package not listed there, which is why earlier `docker cp`-only approaches kept disappearing after restart.
+4. Runs `npm install --prefix /var/lib/homebridge` so the symlink into `node_modules/` is created immediately.
+5. Restarts the container and verifies the plugin loads.
 
 ### Deploy from another machine (rsync)
 
