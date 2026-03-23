@@ -34,7 +34,20 @@ docker cp "$SRC/config.schema.json" "$CONTAINER:$TARGET/config.schema.json"
 echo "Running npm install (GitHub Roon deps need outbound network in container)..."
 docker exec "$CONTAINER" npm install --omit=dev --prefix "$TARGET"
 
+# Homebridge discovers plugins via require paths and $(npm -g prefix)/lib/node_modules — not
+# /homebridge/node_modules by default. Global install must use the SAME user as the Homebridge
+# process or npm may target a different prefix than at runtime (root vs abc/homebridge).
+HB_USER="$(docker exec "$CONTAINER" sh -c 'ps -o user= -p 1 2>/dev/null | head -1' | tr -d ' \r\n')"
+HB_USER="${HB_USER:-root}"
+echo "Registering plugin in global node_modules (as user: $HB_USER, same as PID 1)..."
+docker exec -u "$HB_USER" "$CONTAINER" npm install -g "$TARGET"
+
 echo "Restarting container (brief Homebridge outage)..."
 docker restart "$CONTAINER"
 
-echo "Done. Add platform RoonComplete to Homebridge config if you have not already."
+echo "Done."
+echo "If you still see 'No plugin was found for the platform RoonComplete':"
+echo "  1. If config.json has a top-level \"plugins\" array (plugin whitelist), add: \"homebridge-roon-complete\""
+echo "  2. Check startup log for: Loaded plugin: homebridge-roon-complete"
+echo "  3. Smoke test: docker exec -u $HB_USER $CONTAINER node -e \"require('homebridge-roon-complete')\""
+echo "  4. Full log: docker logs $CONTAINER 2>&1 | grep -E 'homebridge-roon|RoonComplete|ERROR LOADING PLUGIN'"

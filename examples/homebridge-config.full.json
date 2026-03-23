@@ -1,0 +1,455 @@
+{
+    "bridge": {
+        "name": "Homebridge 3F3E",
+        "username": "0E:9D:1E:DE:3F:3E",
+        "port": 51129,
+        "pin": "304-19-913",
+        "advertiser": "bonjour-hap"
+    },
+    "accessories": [],
+    "platforms": [
+        {
+            "name": "Config",
+            "port": 8581,
+            "platform": "config"
+        },
+        {
+            "platform": "cmdSwitch2",
+            "name": "cmdSwitch2",
+            "switches": [
+                {
+                    "name": "Musik Swiss Jazz Küche",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Radio Swiss Jazz\" -z \"Küche\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Swiss Jazz Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Radio Swiss Jazz\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Swiss Jazz Eltern",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Radio Swiss Jazz\" -z \"Eltern\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Swiss Jazz Gäste",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Radio Swiss Jazz\" -z \"Gäste\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Naim Jazz Home Cinema",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Naim Jazz\" -z \"Home Cinema\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Swiss Pop Küche",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Radio Swiss Pop\" -z \"Küche\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Swiss Pop Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Radio Swiss Pop\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Swiss Pop Gäste",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Radio Swiss Pop\" -z \"Gäste\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Swiss Pop Hauswirtschaft",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Radio Swiss Pop\" -z \"Hauswirtschaft\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Swiss Classic Küche",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Radio Swiss Classic\" -z \"Küche\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Swiss Classic Eltern",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Radio Swiss Classic\" -z \"Eltern\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Naim Classical Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Naim Classical\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Naim Classical Home Cinema",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Naim Classical\" -z \"Home Cinema\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Lounge Küche",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Jazz Radio: Lounge\" -z \"Küche\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Lounge Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Jazz Radio: Lounge\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Lounge Eltern",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Jazz Radio: Lounge\" -z \"Eltern\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Lounge Gäste",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Jazz Radio: Lounge\" -z \"Gäste\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Radio 24 Küche",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Radio 24\" -z \"Küche\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Radio 24 Hauswirtschaft",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Radio 24\" -z \"Hauswirtschaft\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Naim Radio Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -r \"Naim Radio\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Dinner Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"J+T Dinner\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Dinner Eltern",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"J+T Dinner\" -z \"Eltern\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Dinner Gäste",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"J+T Dinner\" -z \"Gäste\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Spa Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"J+T Spa\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Spa Eltern",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"J+T Spa\" -z \"Eltern\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Entspannung Eltern",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"Entspannung\" -z \"Eltern\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Entspannung Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"Entspannung\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Jazz Dinner Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"Jazz for Dinner\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Jazz Dinner Gäste",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"Jazz for Dinner\" -z \"Gäste\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Sunday Morning Küche",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"Sunday morning\" -z \"Küche\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Sunday Morning Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"Sunday morning\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Smooth Jazz Gäste",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"Smooth Jazz\" -z \"Gäste\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Smooth Jazz Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"Smooth Jazz\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik RnB Dinner Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"R&B Dinner\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Fokus Küche",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"T Fokus\" -z \"Küche\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Vocal Jazz Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"Vocal Jazz\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Vocal Jazz Eltern",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -p \"Vocal Jazz\" -z \"Eltern\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Jazz Küche",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -g \"Jazz\" -z \"Küche\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Jazz Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -g \"Jazz\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Jazz Eltern",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -g \"Jazz\" -z \"Eltern\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Klassik Eltern",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -g \"Classical\" -z \"Eltern\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Klassik Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -g \"Classical\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Klassik Home Cinema",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -g \"Classical\" -z \"Home Cinema\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Pop Küche",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -g \"Pop/Rock\" -z \"Küche\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Pop Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -g \"Pop/Rock\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Pop Gäste",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -g \"Pop/Rock\" -z \"Gäste\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Pop Hauswirtschaft",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -g \"Pop/Rock\" -z \"Hauswirtschaft\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Soul Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -g \"R&B\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Soul Gäste",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -g \"R&B\" -z \"Gäste\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Electronic Küche",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -g \"Electronic\" -z \"Küche\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Electronic Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -g \"Electronic\" -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Pause Küche",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -c pause -z \"Küche\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Pause Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -c pause -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Pause Eltern",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -c pause -z \"Eltern\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Pause Home Cinema",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -c pause -z \"Home Cinema\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Pause Gäste",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -c pause -z \"Gäste\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Pause Hauswirtschaft",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -c pause -z \"Hauswirtschaft\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Pause Alles",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -c pause_all'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Lauter Küche",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -v r:+10 -z \"Küche\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Leiser Küche",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -v r:-10 -z \"Küche\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Lauter Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -v r:+10 -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Leiser Wohnzimmer",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -v r:-10 -z \"Wohnzimmer\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Lauter Eltern",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -v r:+10 -z \"Eltern\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Leiser Eltern",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -v r:-10 -z \"Eltern\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Lauter Home Cinema",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -v r:+10 -z \"Home Cinema\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Leiser Home Cinema",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -v r:-10 -z \"Home Cinema\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Lauter Gäste",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -v r:+10 -z \"Gäste\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Leiser Gäste",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -v r:-10 -z \"Gäste\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Lauter Hauswirtschaft",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -v r:+10 -z \"Hauswirtschaft\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                },
+                {
+                    "name": "Musik Leiser Hauswirtschaft",
+                    "on_cmd": "ssh -i /homebridge/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@192.168.1.12 'roon -v r:-10 -z \"Hauswirtschaft\"'",
+                    "off_cmd": "",
+                    "timeout": 1000
+                }
+            ]
+        },
+        {
+            "platform": "RoonComplete",
+            "name": "RoonComplete",
+            "roonHost": "192.168.1.12",
+            "roonPort": 9100,
+            "excludeZones": [],
+            "includeRadio": true,
+            "includePlaylists": true,
+            "includeGenres": true,
+            "radioStations": [],
+            "playlists": []
+        }
+    ]
+}

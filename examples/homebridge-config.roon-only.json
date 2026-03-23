@@ -1,0 +1,29 @@
+{
+    "bridge": {
+        "name": "Homebridge 3F3E",
+        "username": "0E:9D:1E:DE:3F:3E",
+        "port": 51129,
+        "pin": "304-19-913",
+        "advertiser": "bonjour-hap"
+    },
+    "accessories": [],
+    "platforms": [
+        {
+            "name": "Config",
+            "port": 8581,
+            "platform": "config"
+        },
+        {
+            "platform": "RoonComplete",
+            "name": "RoonComplete",
+            "roonHost": "192.168.1.12",
+            "roonPort": 9100,
+            "excludeZones": [],
+            "includeRadio": true,
+            "includePlaylists": true,
+            "includeGenres": true,
+            "radioStations": [],
+            "playlists": []
+        }
+    ]
+}
