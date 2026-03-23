@@ -31,6 +31,8 @@ export class ZoneAccessory {
     if (!speaker) {
       speaker = accessory.addService(Svc.SmartSpeaker, this.accessory.displayName);
     }
+    speaker.setPrimaryService(true);
+    speaker.setCharacteristic(Characteristic.ConfiguredName, this.accessory.displayName);
 
     // Service.Speaker provides native Volume (0-100) + Mute — shows as a speaker in Home, not a light.
     let volSvc = accessory.getService(Svc.Speaker);
