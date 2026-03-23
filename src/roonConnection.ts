@@ -1,4 +1,6 @@
 import { EventEmitter } from 'events';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const RoonApi = require('node-roon-api');
@@ -61,6 +63,8 @@ interface RoonZoneRaw {
 export interface RoonConnectionOptions {
   roonHost?: string;
   roonPort?: number;
+  /** Homebridge storage directory — Roon tokens stored in homebridge-roon-complete-roonstate.json (not merged into config.json). */
+  persistDir?: string;
 }
 
 interface BrowseLeaf {
@@ -111,6 +115,8 @@ export class RoonConnection extends EventEmitter {
     super();
     this.setMaxListeners(64);
     this.opts = opts;
+
+    const persist = RoonConnection.buildRoonPersistHandlers(opts.persistDir);
     this.roon = new RoonApi({
       extension_id: 'com.homebridge.roon.complete',
       display_name: 'Homebridge Roon Complete',
@@ -118,7 +124,8 @@ export class RoonConnection extends EventEmitter {
       publisher: 'homebridge-roon-complete',
       email: 'none@example.com',
       website: 'https://github.com/homebridge/homebridge',
-      log_level: 'none',
+      log_level: process.env.HOMEBRIDGE_ROON_DEBUG === '1' ? 'all' : 'none',
+      ...(persist ?? {}),
       core_paired: (core: RoonConnection['core']) => {
         this.core = core;
         this.subscribeZones();
@@ -138,6 +145,52 @@ export class RoonConnection extends EventEmitter {
     this.roon.init_services({
       required_services: [RoonApiTransport, RoonApiBrowse],
     });
+  }
+
+  /**
+   * node-roon-api defaults to reading/writing `roonstate` inside cwd `config.json`, which is the same
+   * file as Homebridge’s config and can break pairing. Use a dedicated JSON file under persistDir.
+   */
+  private static buildRoonPersistHandlers(persistDir?: string):
+    | { get_persisted_state: () => object; set_persisted_state: (state: object) => void }
+    | undefined {
+    if (!persistDir) return undefined;
+    const stateFile = path.join(persistDir, 'homebridge-roon-complete-roonstate.json');
+    let migrated = false;
+
+    const migrateFromHomebridgeConfigOnce = (): void => {
+      if (migrated) return;
+      migrated = true;
+      if (fs.existsSync(stateFile)) return;
+      try {
+        const cfgPath = path.join(persistDir, 'config.json');
+        const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8')) as { roonstate?: unknown };
+        if (cfg?.roonstate != null && typeof cfg.roonstate === 'object') {
+          fs.mkdirSync(persistDir, { recursive: true });
+          fs.writeFileSync(stateFile, JSON.stringify(cfg.roonstate, null, 2), 'utf8');
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
+    return {
+      get_persisted_state: (): object => {
+        try {
+          migrateFromHomebridgeConfigOnce();
+          if (fs.existsSync(stateFile)) {
+            return JSON.parse(fs.readFileSync(stateFile, 'utf8')) as object;
+          }
+        } catch {
+          /* ignore */
+        }
+        return {};
+      },
+      set_persisted_state: (state: object): void => {
+        fs.mkdirSync(persistDir, { recursive: true });
+        fs.writeFileSync(stateFile, JSON.stringify(state, null, 2), 'utf8');
+      },
+    };
   }
 
   connect(): Promise<void> {
@@ -165,6 +218,7 @@ export class RoonConnection extends EventEmitter {
       if (host) {
         this.startFixedHostWebSocket();
       } else {
+        this.emit('status', 'Roon: starting UDP discovery for Core (Docker may block this — prefer roonHost).');
         this.roon.start_discovery();
       }
     })
@@ -202,6 +256,11 @@ export class RoonConnection extends EventEmitter {
     // Roon Core advertises `http_port` via SOOD (often 9150 on current builds; older docs used 9100).
     const port = this.opts.roonPort ?? 9150;
     if (!host) return;
+
+    this.emit(
+      'status',
+      `Roon: connecting to ${host}:${port} — in Roon open Settings → Extensions and enable "Homebridge Roon Complete" if it appears.`,
+    );
 
     this.roon.ws_connect({
       host,

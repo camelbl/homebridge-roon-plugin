@@ -51,7 +51,9 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     this.roon = new RoonConnection({
       roonHost: typeof c.roonHost === 'string' && c.roonHost.trim() !== '' ? c.roonHost.trim() : undefined,
       roonPort: Number.isFinite(port as number) ? (port as number) : undefined,
+      persistDir: this.api.user.storagePath(),
     });
+    this.roon.on('status', (msg: string) => this.log.info(msg));
     this.roon.on('error', (e: unknown) => this.log.error(String(e)));
     this.roon.on('disconnected', () => this.log.warn('Roon: WebSocket closed (reconnecting if roonHost is set)'));
     this.roon.on('reconnecting', (info: { attempt: number; delayMs: number }) => {
