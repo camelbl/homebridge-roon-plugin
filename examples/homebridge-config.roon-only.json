@@ -17,7 +17,7 @@
             "platform": "RoonComplete",
             "name": "RoonComplete",
             "roonHost": "192.168.1.12",
-            "roonPort": 9100,
+            "roonPort": 9150,
             "excludeZones": [],
             "includeRadio": true,
             "includePlaylists": true,

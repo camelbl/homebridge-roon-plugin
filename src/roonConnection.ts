@@ -199,7 +199,8 @@ export class RoonConnection extends EventEmitter {
   /** Only when `roonHost` is set — discovery mode relies on Roon’s own SOOD retries. */
   private startFixedHostWebSocket(): void {
     const host = (this.opts.roonHost || '').trim();
-    const port = this.opts.roonPort ?? 9100;
+    // Roon Core advertises `http_port` via SOOD (often 9150 on current builds; older docs used 9100).
+    const port = this.opts.roonPort ?? 9150;
     if (!host) return;
 
     this.roon.ws_connect({

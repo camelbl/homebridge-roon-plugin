@@ -21,7 +21,7 @@
       "roonPort": {
         "title": "Roon WebSocket Port",
         "type": "integer",
-        "default": 9100,
+        "default": 9150,
         "minimum": 1,
         "maximum": 65535
       },
