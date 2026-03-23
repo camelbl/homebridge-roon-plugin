@@ -222,11 +222,11 @@ export class RoonConnection extends EventEmitter {
         this.emit('status', 'Roon: starting UDP discovery for Core (Docker may block this — prefer roonHost).');
         this.roon.start_discovery();
       }
-    })
-      .then(() => this.populateBrowseTitlesIfNeeded())
-      .finally(() => {
-        this.connectPromise = null;
-      });
+    }).finally(() => {
+      this.connectPromise = null;
+    });
+    // Do not chain populateBrowseTitlesIfNeeded() here — it can run for minutes and would block
+    // await connect() in the platform; browse is triggered via refreshBrowseLists() after zones sync.
     return this.connectPromise;
   }
 
