@@ -198,6 +198,10 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     if (!this.roon) return;
 
     const desired = this.desiredUuids();
+    const visibleZones = this.roon.getZones().filter((z) => !this.excluded(z.display_name));
+    this.log.info(
+      `RoonComplete: HomeKit sync — ${visibleZones.length} Roon zone(s) → ${desired.size} accessories (zones + optional radio/playlist/genre switches). If 0 zones, Roon has no zones or all are in excludeZones.`,
+    );
 
     for (const [uuid, acc] of [...this.accessoryByUuid.entries()]) {
       if (!desired.has(uuid)) {
