@@ -21,12 +21,16 @@ export class ZoneAccessory {
       .setCharacteristic(Characteristic.Manufacturer, 'Roon')
       .setCharacteristic(Characteristic.Model, 'Zone');
 
-    // Remove old lightbulb services from cached accessories (previous plugin version used them).
+    // Remove stale services from previous plugin versions (lightbulbs, standalone Speaker).
     for (const id of ['volume', 'mute']) {
       const old = accessory.getServiceById(Svc.Lightbulb, id);
       if (old) accessory.removeService(old);
     }
+    const oldSpeaker = accessory.getService(Svc.Speaker);
+    if (oldSpeaker) accessory.removeService(oldSpeaker);
 
+    // SmartSpeaker is the only service — Volume + Mute added directly as optional characteristics.
+    // Having a separate Service.Speaker alongside SmartSpeaker confuses HomeKit (shows in "Sonstiges").
     let speaker = accessory.getService(Svc.SmartSpeaker);
     if (!speaker) {
       speaker = accessory.addService(Svc.SmartSpeaker, this.accessory.displayName);
@@ -34,11 +38,9 @@ export class ZoneAccessory {
     speaker.setPrimaryService(true);
     speaker.setCharacteristic(Characteristic.ConfiguredName, this.accessory.displayName);
 
-    // Service.Speaker provides native Volume (0-100) + Mute — shows as a speaker in Home, not a light.
-    let volSvc = accessory.getService(Svc.Speaker);
-    if (!volSvc) {
-      volSvc = accessory.addService(Svc.Speaker);
-    }
+    // Add Volume and Mute as optional characteristics on the SmartSpeaker service itself.
+    speaker.addOptionalCharacteristic(Characteristic.Volume);
+    speaker.addOptionalCharacteristic(Characteristic.Mute);
 
     speaker
       .getCharacteristic(Characteristic.TargetMediaState)!
@@ -54,33 +56,32 @@ export class ZoneAccessory {
         }
       });
 
-    volSvc
+    speaker
       .getCharacteristic(Characteristic.Volume)!
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
         this.roon.setVolume(this.zoneId, value as number);
       });
 
-    volSvc.getCharacteristic(Characteristic.Mute)!.onSet((value: CharacteristicValue) => {
+    speaker.getCharacteristic(Characteristic.Mute)!.onSet((value: CharacteristicValue) => {
       if (this.updatingFromRoon) return;
       this.roon.setMuted(this.zoneId, value as boolean);
     });
 
     this.roon.onZoneUpdate((z) => {
       if (z.zone_id !== this.zoneId) return;
-      this.applyZone(z, speaker!, volSvc!, Characteristic);
+      this.applyZone(z, speaker!, Characteristic);
     });
 
     const initial = this.roon.getZones().find((z) => z.zone_id === zoneId);
     if (initial) {
-      this.applyZone(initial, speaker, volSvc, Characteristic);
+      this.applyZone(initial, speaker, Characteristic);
     }
   }
 
   private applyZone(
     z: Zone,
     speaker: Service,
-    volSvc: Service,
     Characteristic: typeof import('hap-nodejs').Characteristic,
   ): void {
     this.updatingFromRoon = true;
@@ -93,9 +94,8 @@ export class ZoneAccessory {
 
       speaker.getCharacteristic(CurrentMediaState)!.updateValue(cur);
       speaker.getCharacteristic(TargetMediaState)!.updateValue(cur);
-
-      volSvc.getCharacteristic(Characteristic.Volume)!.updateValue(z.volumePercent);
-      volSvc.getCharacteristic(Characteristic.Mute)!.updateValue(z.isMuted);
+      speaker.getCharacteristic(Characteristic.Volume)!.updateValue(z.volumePercent);
+      speaker.getCharacteristic(Characteristic.Mute)!.updateValue(z.isMuted);
     } finally {
       this.updatingFromRoon = false;
     }
