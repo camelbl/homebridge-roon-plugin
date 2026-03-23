@@ -94,7 +94,7 @@ The script:
          "platform": "RoonComplete",
          "name": "RoonComplete",
          "roonHost": "192.168.1.12",
-         "roonPort": 9150,
+         "roonPort": 9330,
          "excludeZones": [],
          "includeRadio": true,
          "includePlaylists": true,
@@ -121,7 +121,7 @@ The script:
 | Key | Description |
 | --- | --- |
 | `roonHost` | Roon Core IP/hostname; omit for auto-discovery |
-| `roonPort` | Extension WebSocket port Core advertises as `http_port` (default `9150`; some older cores use `9100` — check `ss -tlnp` on the Core host) |
+| `roonPort` | Extension WebSocket port (default `9330`; verify with `ss -tlnp \| grep Roon` on the Core host — use the port that responds to WebSocket upgrade) |
 | `excludeZones` | Zone display names to hide from HomeKit |
 | `includeRadio` / `includePlaylists` / `includeGenres` | Create per-zone switches (default `true`) |
 | `radioStations` / `playlists` | If non-empty, only those titles are exposed |
