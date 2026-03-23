@@ -12,6 +12,15 @@ Homebridge platform plugin that exposes Roon zones (Smart Speaker + volume/mute)
 
 **Pairing / timeout:** Roon tokens are stored in **`homebridge-roon-complete-roonstate.json`** under the Homebridge storage folder (not inside `config.json`). If you see **Timeout waiting for Roon Core** for two minutes while TCP to the Core port works, delete that JSON file, remove any stray top-level **`roonstate`** key from `config.json`, restart Homebridge, then enable the extension again in **Roon → Settings → Extensions**. For verbose Roon API logs: set environment variable **`HOMEBRIDGE_ROON_DEBUG=1`** on the Homebridge process.
 
+**Extension never appears in Roon:** The list only updates after the Core accepts a WebSocket to the API URL (path **`/api`**, port **`9150`** by default). Check Homebridge logs for **`Roon: Core accepted the extension`** — if that line never appears, registration never succeeded (fix host/port/Docker first). Use the Roon **desktop** app signed into **this** Core (same machine as Core if it’s the NUC). WebSocket probe:
+
+```bash
+docker cp scripts/roon-ws-probe.js homebridge:/tmp/
+docker exec homebridge node /tmp/roon-ws-probe.js
+```
+
+Try **`network_mode: host`** and **`roonHost": "127.0.0.1"`** if Docker still blocks the protocol after TCP tests pass.
+
 ## Behaviour
 
 - **Fixed `roonHost`:** If the WebSocket to the Core drops, the plugin reconnects with exponential backoff (about 2s–60s, with jitter). Homebridge logs show `Roon: WebSocket closed` and scheduled reconnect attempts. After Roon pairs again, browse lists and accessories are refreshed automatically.

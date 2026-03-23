@@ -127,6 +127,7 @@ export class RoonConnection extends EventEmitter {
       log_level: process.env.HOMEBRIDGE_ROON_DEBUG === '1' ? 'all' : 'none',
       ...(persist ?? {}),
       core_paired: (core: RoonConnection['core']) => {
+        this.emit('status', 'Roon: Core accepted the extension — if it was missing from Settings → Extensions, it should appear now.');
         this.core = core;
         this.subscribeZones();
       },
@@ -328,6 +329,7 @@ export class RoonConnection extends EventEmitter {
         },
       ) => {
         if (response === 'Subscribed') {
+          this.emit('status', 'Roon: transport subscribed — zones will sync to HomeKit.');
           this.clearReconnectTimer();
           this.reconnectAttempt = 0;
           if (msg.zones) {
