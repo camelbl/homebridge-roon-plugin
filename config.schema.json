@@ -16,7 +16,7 @@
         "title": "Roon Core IP / Hostname",
         "type": "string",
         "placeholder": "Leave empty for automatic discovery",
-        "description": "IP or hostname of your Roon Core (e.g. 192.168.1.12). Empty = auto-discover via UDP."
+        "description": "Roon Core reachable from Homebridge. Empty = UDP discovery. Docker on same host as Core: LAN IP (e.g. 192.168.1.x) often fails; use host.docker.internal (compose: extra_hosts host.docker.internal:host-gateway) or default-gateway IP from inside the container, or leave empty to try discovery."
       },
       "roonPort": {
         "title": "Roon WebSocket Port",

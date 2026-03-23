@@ -210,7 +210,14 @@ export class RoonConnection extends EventEmitter {
         this.scheduleFixedHostReconnect();
       },
       onerror: () => {
-        this.emit('error', new Error('Roon WebSocket transport error'));
+        this.emit(
+          'error',
+          new Error(
+            `Roon WebSocket failed (${host}:${port}). ` +
+              'If Homebridge is in Docker and Roon runs on the same machine, the LAN IP often does not work from the container — ' +
+              'set roonHost to host.docker.internal (add extra_hosts: host.docker.internal:host-gateway to compose) or the container default-gateway IP (often 172.17.0.1), or clear roonHost to use discovery.',
+          ),
+        );
       },
     });
   }
