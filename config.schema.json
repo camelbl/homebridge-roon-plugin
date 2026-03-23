@@ -1,0 +1,63 @@
+{
+  "pluginAlias": "RoonComplete",
+  "pluginType": "platform",
+  "singularDisplayName": "Roon Complete",
+  "headerDisplay": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "default": "RoonComplete",
+        "required": true
+      },
+      "roonHost": {
+        "title": "Roon Core IP / Hostname",
+        "type": "string",
+        "placeholder": "Leave empty for automatic discovery",
+        "description": "IP or hostname of your Roon Core (e.g. 192.168.1.12). Empty = auto-discover via UDP."
+      },
+      "roonPort": {
+        "title": "Roon WebSocket Port",
+        "type": "integer",
+        "default": 9100,
+        "minimum": 1,
+        "maximum": 65535
+      },
+      "excludeZones": {
+        "title": "Exclude zones",
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Roon zone display names that should not appear in HomeKit."
+      },
+      "includeRadio": {
+        "title": "Include Internet Radio switches",
+        "type": "boolean",
+        "default": true
+      },
+      "includePlaylists": {
+        "title": "Include Playlist switches",
+        "type": "boolean",
+        "default": true
+      },
+      "includeGenres": {
+        "title": "Include Genre switches",
+        "type": "boolean",
+        "default": true
+      },
+      "radioStations": {
+        "title": "Radio stations filter",
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Empty = all stations. Otherwise only listed station names."
+      },
+      "playlists": {
+        "title": "Playlists filter",
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Empty = all playlists. Otherwise only listed playlist names."
+      }
+    }
+  }
+}
