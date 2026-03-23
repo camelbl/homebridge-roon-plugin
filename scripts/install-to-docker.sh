@@ -28,24 +28,50 @@ if [[ ! -d "$SRC/dist" ]] || [[ ! -f "$SRC/package.json" ]]; then
   exit 1
 fi
 
-echo "[1/3] Copying built plugin into container $CONTAINER:$TARGET (from $SRC)"
-
-docker exec "$CONTAINER" mkdir -p "$TARGET/dist"
-docker cp "$SRC/dist/." "$CONTAINER:$TARGET/dist/"
-docker cp "$SRC/package.json" "$CONTAINER:$TARGET/package.json"
-docker cp "$SRC/config.schema.json" "$CONTAINER:$TARGET/config.schema.json"
+# Prefer copying into the host directory that is bind-mounted at /homebridge. docker cp into a
+# mounted volume can be unreliable on some setups; startup scripts may also replace node_modules
+# if files were not written to the actual volume.
+HOST_HOME_BRIDGE="$(docker inspect "$CONTAINER" --format '{{range .Mounts}}{{if eq .Destination "/homebridge"}}{{.Source}}{{end}}{{end}}' 2>/dev/null || true)"
+HOST_PLUGIN=""
+if [[ -n "$HOST_HOME_BRIDGE" && -d "$HOST_HOME_BRIDGE" ]]; then
+  HOST_PLUGIN="${HOST_HOME_BRIDGE}/node_modules/homebridge-roon-complete"
+  echo "[1/3] Copying via host mount $HOST_PLUGIN (from $SRC)"
+  mkdir -p "$HOST_PLUGIN/dist"
+  cp -a "$SRC/dist/." "$HOST_PLUGIN/dist/"
+  cp "$SRC/package.json" "$HOST_PLUGIN/package.json"
+  cp "$SRC/config.schema.json" "$HOST_PLUGIN/config.schema.json"
+else
+  echo "[1/3] Copying with docker cp into $CONTAINER:$TARGET (from $SRC)"
+  echo "  (No resolvable host bind mount for /homebridge — if files vanish after restart, inspect: docker inspect $CONTAINER --format '{{json .Mounts}}')"
+  docker exec "$CONTAINER" mkdir -p "$TARGET/dist"
+  docker cp "$SRC/dist/." "$CONTAINER:$TARGET/dist/"
+  docker cp "$SRC/package.json" "$CONTAINER:$TARGET/package.json"
+  docker cp "$SRC/config.schema.json" "$CONTAINER:$TARGET/config.schema.json"
+fi
 
 if ! docker exec "$CONTAINER" test -f "$TARGET/package.json"; then
-  echo "ERROR: $TARGET/package.json missing right after docker cp."
-  echo "  Check: docker ps (container name), volume is not read-only, SRC paths exist on host."
+  echo "ERROR: $TARGET/package.json not visible in container after copy."
+  echo "  Mount: ${HOST_HOME_BRIDGE:-unknown}"
   exit 1
 fi
 
 echo "[2/3] npm install dependencies in plugin folder (needs network for GitHub Roon deps)..."
 docker exec "$CONTAINER" npm install --omit=dev --prefix "$TARGET"
 
+if ! docker exec "$CONTAINER" test -f "$TARGET/package.json"; then
+  echo "ERROR: $TARGET/package.json missing after npm install --prefix."
+  exit 1
+fi
+
 echo "[3/3] Restarting container (brief Homebridge outage)..."
 docker restart "$CONTAINER"
+sleep 2
+if ! docker exec "$CONTAINER" test -f "$TARGET/package.json"; then
+  echo "WARNING: $TARGET/package.json disappeared after restart."
+  echo "  Your image may reset node_modules on boot. Install on the host path that maps to /homebridge"
+  echo "  (see docker inspect Mounts), or add this plugin via a method your image supports."
+  exit 1
+fi
 
 echo "Done."
 echo "If you still see 'No plugin was found for the platform RoonComplete':"
