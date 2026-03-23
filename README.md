@@ -35,7 +35,7 @@ On the **Ubuntu server** (Docker and default container name `homebridge`):
    HOMEBRIDGE_CONTAINER=your_container_name ./scripts/install-to-docker.sh
    ```
 
-The script copies `dist/`, `package.json`, and `config.schema.json` into `/homebridge/node_modules/homebridge-roon-complete/` inside the container, runs `npm install --omit=dev` there, then **`npm install -g` that folder as the same user as PID 1** (so Homebridge’s global plugin path sees it), and restarts the container. **Do not run only `npm install -g`**—the copy step must run first or you get `ENOENT` on `package.json`.
+The script copies `dist/`, `package.json`, and `config.schema.json` into **`/homebridge/node_modules/homebridge-roon-complete/`** (same tree as UI-installed plugins such as `homebridge-cmdswitch2`), runs `npm install --omit=dev` there, and restarts the container. The official image often uses **`NODE_PATH=/homebridge/node_modules`**, so **`npm install -g` is not used**—a global copy under `/opt/homebridge/lib/node_modules` may be ignored by the running Homebridge process.
 
 ### Deploy from another machine (rsync)
 
