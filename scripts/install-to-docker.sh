@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Install / update homebridge-roon-complete inside a Homebridge Docker container.
 #
+# You cannot run "npm install -g /homebridge/node_modules/homebridge-roon-complete" by itself:
+# that path must first exist inside the container (docker cp + npm install --prefix). This
+# script does the full sequence (see README “Homebridge Docker on Ubuntu”).
+#
 # Usage (on the Ubuntu host, from the plugin repo root after `npm run build`):
 #   ./scripts/install-to-docker.sh
 #   HOMEBRIDGE_CONTAINER=mycontainer ./scripts/install-to-docker.sh /path/to/homebridge-roon-plugin
@@ -24,14 +28,20 @@ if [[ ! -d "$SRC/dist" ]] || [[ ! -f "$SRC/package.json" ]]; then
   exit 1
 fi
 
-echo "Installing into container $CONTAINER:$TARGET (from $SRC)"
+echo "[1/4] Copying built plugin into container $CONTAINER:$TARGET (from $SRC)"
 
 docker exec "$CONTAINER" mkdir -p "$TARGET/dist"
 docker cp "$SRC/dist/." "$CONTAINER:$TARGET/dist/"
 docker cp "$SRC/package.json" "$CONTAINER:$TARGET/package.json"
 docker cp "$SRC/config.schema.json" "$CONTAINER:$TARGET/config.schema.json"
 
-echo "Running npm install (GitHub Roon deps need outbound network in container)..."
+if ! docker exec "$CONTAINER" test -f "$TARGET/package.json"; then
+  echo "ERROR: $TARGET/package.json missing right after docker cp."
+  echo "  Check: docker ps (container name), volume is not read-only, SRC paths exist on host."
+  exit 1
+fi
+
+echo "[2/4] npm install dependencies in plugin folder (needs network for GitHub Roon deps)..."
 docker exec "$CONTAINER" npm install --omit=dev --prefix "$TARGET"
 
 # Homebridge discovers plugins via require paths and $(npm -g prefix)/lib/node_modules — not
@@ -39,10 +49,10 @@ docker exec "$CONTAINER" npm install --omit=dev --prefix "$TARGET"
 # process or npm may target a different prefix than at runtime (root vs abc/homebridge).
 HB_USER="$(docker exec "$CONTAINER" sh -c 'ps -o user= -p 1 2>/dev/null | head -1' | tr -d ' \r\n')"
 HB_USER="${HB_USER:-root}"
-echo "Registering plugin in global node_modules (as user: $HB_USER, same as PID 1)..."
+echo "[3/4] npm install -g (so Homebridge discovers the plugin; user=$HB_USER)..."
 docker exec -u "$HB_USER" "$CONTAINER" npm install -g "$TARGET"
 
-echo "Restarting container (brief Homebridge outage)..."
+echo "[4/4] Restarting container (brief Homebridge outage)..."
 docker restart "$CONTAINER"
 
 echo "Done."
