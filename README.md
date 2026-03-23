@@ -16,6 +16,29 @@ Homebridge platform plugin that exposes Roon zones (Smart Speaker + volume/mute)
 
 ## Installation (Homebridge Docker on Ubuntu)
 
+### Quick install on the host (e.g. 192.168.1.12)
+
+On the **Ubuntu server** (Docker and default container name `homebridge`):
+
+1. Copy this repository onto the host (git clone, `scp -r`, or rsync), then:
+
+   ```bash
+   cd /path/to/homebridge-roon-plugin
+   npm install
+   npm run build
+   ./scripts/install-to-docker.sh
+   ```
+
+2. If your container has another name:
+
+   ```bash
+   HOMEBRIDGE_CONTAINER=your_container_name ./scripts/install-to-docker.sh
+   ```
+
+The script copies `dist/`, `package.json`, and `config.schema.json` into `/homebridge/node_modules/homebridge-roon-complete/` inside the container, runs `npm install --omit=dev` there, and restarts the container.
+
+### Deploy from another machine (rsync)
+
 1. Build on your development machine (or on the server):
 
    ```bash
