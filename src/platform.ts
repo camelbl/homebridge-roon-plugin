@@ -32,7 +32,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       return;
     }
     this.api.on('didFinishLaunching', () => {
-      void this.onLaunch();
+      void this.onLaunch().catch((e) => this.log.error('RoonComplete: startup failed:', e));
     });
   }
 
@@ -110,9 +110,13 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     this.prevZoneKey = [...this.roon.getZones().map((z) => z.zone_id)].sort().join('|');
   }
 
+  /** Homebridge UI can store list fields as non-arrays; guard to avoid sync throwing before any log line. */
+  private asStringList(value: unknown): string[] {
+    return Array.isArray(value) ? (value.filter((x) => typeof x === 'string') as string[]) : [];
+  }
+
   private excluded(name: string): boolean {
-    const ex = this.config.excludeZones ?? [];
-    return ex.includes(name);
+    return this.asStringList(this.config.excludeZones).includes(name);
   }
 
   private desiredUuids(): Map<string, { name: string; setup: (acc: PlatformAccessory) => void }> {
@@ -140,8 +144,8 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     const incR = this.config.includeRadio !== false;
     const incP = this.config.includePlaylists !== false;
     const incG = this.config.includeGenres !== false;
-    const filterRadio = this.config.radioStations ?? [];
-    const filterPl = this.config.playlists ?? [];
+    const filterRadio = this.asStringList(this.config.radioStations);
+    const filterPl = this.asStringList(this.config.playlists);
 
     let radios = incR ? this.roon.getRadioStations() : [];
     if (filterRadio.length) radios = radios.filter((t) => filterRadio.includes(t));
@@ -202,33 +206,38 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
   private async syncAccessories(): Promise<void> {
     if (!this.roon) return;
 
-    const desired = this.desiredUuids();
-    const visibleZones = this.roon.getZones().filter((z) => !this.excluded(z.display_name));
-    this.log.info(
-      `RoonComplete: HomeKit sync — ${visibleZones.length} Roon zone(s) → ${desired.size} accessories (zones + optional radio/playlist/genre switches). If 0 zones, Roon has no zones or all are in excludeZones.`,
-    );
+    try {
+      const desired = this.desiredUuids();
+      const visibleZones = this.roon.getZones().filter((z) => !this.excluded(z.display_name));
+      this.log.info(
+        `RoonComplete: HomeKit sync - ${visibleZones.length} Roon zone(s) -> ${desired.size} accessories (zones + optional radio/playlist/genre switches). If 0 zones, Roon has no zones or all are in excludeZones.`,
+      );
 
-    for (const [uuid, acc] of [...this.accessoryByUuid.entries()]) {
-      if (!desired.has(uuid)) {
-        this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [acc]);
-        this.accessoryByUuid.delete(uuid);
-        this.wired.delete(uuid);
-      }
-    }
-
-    for (const [uuid, meta] of desired.entries()) {
-      let acc = this.accessoryByUuid.get(uuid);
-      if (!acc) {
-        acc = new this.api.platformAccessory(meta.name, uuid);
-        this.accessoryByUuid.set(uuid, acc);
-        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [acc]);
-        meta.setup(acc);
-      } else {
-        acc.displayName = meta.name;
-        if (!this.wired.has(uuid)) {
-          meta.setup(acc);
+      for (const [uuid, acc] of [...this.accessoryByUuid.entries()]) {
+        if (!desired.has(uuid)) {
+          this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [acc]);
+          this.accessoryByUuid.delete(uuid);
+          this.wired.delete(uuid);
         }
       }
+
+      for (const [uuid, meta] of desired.entries()) {
+        let acc = this.accessoryByUuid.get(uuid);
+        if (!acc) {
+          acc = new this.api.platformAccessory(meta.name, uuid);
+          this.accessoryByUuid.set(uuid, acc);
+          this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [acc]);
+          meta.setup(acc);
+        } else {
+          acc.displayName = meta.name;
+          if (!this.wired.has(uuid)) {
+            meta.setup(acc);
+          }
+        }
+      }
+    } catch (e) {
+      this.log.error('RoonComplete: syncAccessories failed (accessories may be missing in Home):', e);
+      throw e;
     }
   }
 }
