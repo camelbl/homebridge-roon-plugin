@@ -2,16 +2,6 @@ import { EventEmitter } from 'events';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// #region agent log 952018
-const _dbgLog = (sessionId: string, hypothesisId: string, location: string, message: string, data?: object): void => {
-  try {
-    const line = JSON.stringify({ sessionId, id: `log_${Date.now()}`, timestamp: Date.now(), location, message, data: data ?? {}, hypothesisId }) + '\n';
-    const f = '/var/lib/homebridge/roon-debug-952018.log';
-    fs.appendFileSync(f, line);
-  } catch { /* best-effort */ }
-};
-// #endregion
-
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const RoonApi = require('node-roon-api');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -127,11 +117,6 @@ export class RoonConnection extends EventEmitter {
     this.opts = opts;
 
     const persist = RoonConnection.buildRoonPersistHandlers(opts.persistDir);
-    // #region agent log 952018
-    _dbgLog('952018', 'H-B', 'roonConnection.ts:constructor', 'RoonConnection created', {
-      roonHost: opts.roonHost, roonPort: opts.roonPort, persistDir: opts.persistDir, hasPersist: !!persist,
-    });
-    // #endregion
     this.roon = new RoonApi({
       extension_id: 'com.homebridge.roon.complete',
       display_name: 'Homebridge Roon Complete',
@@ -142,9 +127,6 @@ export class RoonConnection extends EventEmitter {
       log_level: process.env.HOMEBRIDGE_ROON_DEBUG === '1' ? 'all' : 'none',
       ...(persist ?? {}),
       core_paired: (core: RoonConnection['core']) => {
-        // #region agent log 952018
-        _dbgLog('952018', 'H-A', 'roonConnection.ts:core_paired', 'core_paired fired — pairing succeeded', {});
-        // #endregion
         this.emit('status', 'Roon: Core accepted the extension — if it was missing from Settings → Extensions, it should appear now.');
         this.core = core;
         this.subscribeZones();
@@ -198,26 +180,14 @@ export class RoonConnection extends EventEmitter {
         try {
           migrateFromHomebridgeConfigOnce();
           if (fs.existsSync(stateFile)) {
-            const parsed = JSON.parse(fs.readFileSync(stateFile, 'utf8')) as object;
-            // #region agent log 952018
-            _dbgLog('952018', 'H-E', 'roonConnection.ts:get_persisted_state', 'loaded roonstate from file', {
-              stateFile, keys: Object.keys(parsed),
-            });
-            // #endregion
-            return parsed;
+            return JSON.parse(fs.readFileSync(stateFile, 'utf8')) as object;
           }
         } catch {
           /* ignore */
         }
-        // #region agent log 952018
-        _dbgLog('952018', 'H-E', 'roonConnection.ts:get_persisted_state', 'no roonstate file — starting fresh', { stateFile });
-        // #endregion
         return {};
       },
       set_persisted_state: (state: object): void => {
-        // #region agent log 952018
-        _dbgLog('952018', 'H-E', 'roonConnection.ts:set_persisted_state', 'saving roonstate', { keys: Object.keys(state) });
-        // #endregion
         fs.mkdirSync(persistDir, { recursive: true });
         fs.writeFileSync(stateFile, JSON.stringify(state, null, 2), 'utf8');
       },
@@ -292,24 +262,14 @@ export class RoonConnection extends EventEmitter {
       'status',
       `Roon: connecting to ${host}:${port} — in Roon open Settings → Extensions and enable "Homebridge Roon Complete" if it appears.`,
     );
-    // #region agent log 952018
-    _dbgLog('952018', 'H-D', 'roonConnection.ts:startFixedHostWebSocket', 'calling ws_connect', { host, port });
-    // #endregion
-
     this.roon.ws_connect({
       host,
       port,
       onclose: () => {
-        // #region agent log 952018
-        _dbgLog('952018', 'H-A', 'roonConnection.ts:ws_connect.onclose', 'WS closed', { host, port });
-        // #endregion
         this.emit('disconnected');
         this.scheduleFixedHostReconnect();
       },
       onerror: () => {
-        // #region agent log 952018
-        _dbgLog('952018', 'H-D', 'roonConnection.ts:ws_connect.onerror', 'WS onerror fired', { host, port });
-        // #endregion
         this.emit(
           'error',
           new Error(
