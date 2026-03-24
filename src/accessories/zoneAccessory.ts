@@ -15,87 +15,106 @@ export class ZoneAccessory {
   ) {
     const { Service: Svc, Characteristic } = api.hap;
 
-    this.accessory.displayName = (this.accessory.context.zoneDisplayName as string) || 'Roon Zone';
+    const name = (this.accessory.context.zoneDisplayName as string) || 'Roon Zone';
+    this.accessory.displayName = name;
     this.accessory
       .getService(Svc.AccessoryInformation)!
       .setCharacteristic(Characteristic.Manufacturer, 'Roon')
       .setCharacteristic(Characteristic.Model, 'Zone');
 
-    // Remove stale services from previous plugin versions (lightbulbs, standalone Speaker).
+    // Remove stale services from previous plugin versions.
     for (const id of ['volume', 'mute']) {
-      const old = accessory.getServiceById(Svc.Lightbulb, id);
-      if (old) accessory.removeService(old);
+      const s = this.accessory.getServiceById(Svc.Lightbulb, id);
+      if (s) this.accessory.removeService(s);
     }
-    const oldSpeaker = accessory.getService(Svc.Speaker);
-    if (oldSpeaker) accessory.removeService(oldSpeaker);
-
-    // SmartSpeaker is the only service — Volume + Mute added directly as optional characteristics.
-    // Having a separate Service.Speaker alongside SmartSpeaker confuses HomeKit (shows in "Sonstiges").
-    let speaker = accessory.getService(Svc.SmartSpeaker);
-    if (!speaker) {
-      speaker = accessory.addService(Svc.SmartSpeaker, this.accessory.displayName);
+    for (const SvcType of [Svc.SmartSpeaker, Svc.Speaker]) {
+      const s = this.accessory.getService(SvcType);
+      if (s) this.accessory.removeService(s);
     }
-    speaker.setPrimaryService(true);
-    speaker.setCharacteristic(Characteristic.ConfiguredName, this.accessory.displayName);
 
-    // Add Volume and Mute as optional characteristics on the SmartSpeaker service itself.
-    speaker.addOptionalCharacteristic(Characteristic.Volume);
-    speaker.addOptionalCharacteristic(Characteristic.Mute);
+    // Service.Television shows reliably in Home "Lautsprecher & TVs" on all iOS versions.
+    // SmartSpeaker shows "Nicht unterstützt" on some iOS / HomeKit versions.
+    let tv = this.accessory.getService(Svc.Television);
+    if (!tv) {
+      tv = this.accessory.addService(Svc.Television, name);
+    }
+    tv.setPrimaryService(true);
+    tv.setCharacteristic(Characteristic.ConfiguredName, name);
+    tv.setCharacteristic(
+      Characteristic.SleepDiscoveryMode,
+      Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE,
+    );
 
-    speaker
-      .getCharacteristic(Characteristic.TargetMediaState)!
+    tv.getCharacteristic(Characteristic.Active)
+      .onGet(() => {
+        const z = this.roon.getZones().find((z) => z.zone_id === this.zoneId);
+        return z?.state === 'playing'
+          ? Characteristic.Active.ACTIVE
+          : Characteristic.Active.INACTIVE;
+      })
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
-        const v = value as number;
-        if (v === Characteristic.TargetMediaState.PAUSE) {
-          this.roon.pause(this.zoneId);
-        } else if (v === Characteristic.TargetMediaState.PLAY) {
+        if (value === Characteristic.Active.ACTIVE) {
           this.roon.play(this.zoneId);
-        } else if (v === Characteristic.TargetMediaState.STOP) {
-          this.roon.stop(this.zoneId);
+        } else {
+          this.roon.pause(this.zoneId);
         }
       });
 
-    speaker
+    // ActiveIdentifier is required by Television; we don't use input sources so fix it at 1.
+    tv.getCharacteristic(Characteristic.ActiveIdentifier)
+      .onGet(() => 1)
+      .onSet(() => {
+        /* no-op */
+      });
+
+    // TelevisionSpeaker handles volume + mute and links to the Television tile.
+    let tvSpeaker = this.accessory.getService(Svc.TelevisionSpeaker);
+    if (!tvSpeaker) {
+      tvSpeaker = this.accessory.addService(Svc.TelevisionSpeaker);
+    }
+    tv.addLinkedService(tvSpeaker);
+    tvSpeaker.setCharacteristic(
+      Characteristic.VolumeControlType,
+      Characteristic.VolumeControlType.ABSOLUTE,
+    );
+
+    tvSpeaker
       .getCharacteristic(Characteristic.Volume)!
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
         this.roon.setVolume(this.zoneId, value as number);
       });
 
-    speaker.getCharacteristic(Characteristic.Mute)!.onSet((value: CharacteristicValue) => {
+    tvSpeaker.getCharacteristic(Characteristic.Mute)!.onSet((value: CharacteristicValue) => {
       if (this.updatingFromRoon) return;
       this.roon.setMuted(this.zoneId, value as boolean);
     });
 
     this.roon.onZoneUpdate((z) => {
       if (z.zone_id !== this.zoneId) return;
-      this.applyZone(z, speaker!, Characteristic);
+      this.applyZone(z, tv!, tvSpeaker!, Characteristic);
     });
 
     const initial = this.roon.getZones().find((z) => z.zone_id === zoneId);
     if (initial) {
-      this.applyZone(initial, speaker, Characteristic);
+      this.applyZone(initial, tv, tvSpeaker, Characteristic);
     }
   }
 
   private applyZone(
     z: Zone,
-    speaker: Service,
+    tv: Service,
+    tvSpeaker: Service,
     Characteristic: typeof import('hap-nodejs').Characteristic,
   ): void {
     this.updatingFromRoon = true;
     try {
-      const { CurrentMediaState, TargetMediaState } = Characteristic;
-      let cur = CurrentMediaState.STOP;
-      if (z.state === 'playing') cur = CurrentMediaState.PLAY;
-      else if (z.state === 'paused') cur = CurrentMediaState.PAUSE;
-      else if (z.state === 'loading') cur = CurrentMediaState.LOADING;
-
-      speaker.getCharacteristic(CurrentMediaState)!.updateValue(cur);
-      speaker.getCharacteristic(TargetMediaState)!.updateValue(cur);
-      speaker.getCharacteristic(Characteristic.Volume)!.updateValue(z.volumePercent);
-      speaker.getCharacteristic(Characteristic.Mute)!.updateValue(z.isMuted);
+      tv.getCharacteristic(Characteristic.Active)!.updateValue(
+        z.state === 'playing' ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE,
+      );
+      tvSpeaker.getCharacteristic(Characteristic.Volume)!.updateValue(z.volumePercent);
+      tvSpeaker.getCharacteristic(Characteristic.Mute)!.updateValue(z.isMuted);
     } finally {
       this.updatingFromRoon = false;
     }

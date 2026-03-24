@@ -132,7 +132,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
         name: z.display_name,
         setup: (acc) => {
           acc.context = { kind: 'zone', zoneId: z.zone_id, zoneDisplayName: z.display_name };
-          acc.category = Categories.SPEAKER;
+          acc.category = Categories.TELEVISION;
           if (!this.wired.has(zu)) {
             this.wired.add(zu);
             new ZoneAccessory(this.log, this.api, acc, this.roon!, z.zone_id);
