@@ -159,7 +159,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       for (const station of radios) {
         const u = this.api.hap.uuid.generate(`${PLUGIN_NAME}:radio:${z.zone_id}:${station}`);
         out.set(u, {
-          name: `Musik ${station} ${z.display_name}`,
+          name: `${station} ${z.display_name}`,
           setup: (acc) => {
             acc.context = { kind: 'radio', zoneId: z.zone_id, zoneDisplayName: z.display_name, itemTitle: station };
             acc.category = Categories.SWITCH;
@@ -173,7 +173,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       for (const pl of playlists) {
         const u = this.api.hap.uuid.generate(`${PLUGIN_NAME}:playlist:${z.zone_id}:${pl}`);
         out.set(u, {
-          name: `Musik ${pl} ${z.display_name}`,
+          name: `${pl} ${z.display_name}`,
           setup: (acc) => {
             acc.context = { kind: 'playlist', zoneId: z.zone_id, zoneDisplayName: z.display_name, itemTitle: pl };
             acc.category = Categories.SWITCH;
@@ -187,7 +187,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       for (const g of genres) {
         const u = this.api.hap.uuid.generate(`${PLUGIN_NAME}:genre:${z.zone_id}:${g}`);
         out.set(u, {
-          name: `Musik ${g} ${z.display_name}`,
+          name: `${g} ${z.display_name}`,
           setup: (acc) => {
             acc.context = { kind: 'genre', zoneId: z.zone_id, zoneDisplayName: z.display_name, itemTitle: g };
             acc.category = Categories.SWITCH;

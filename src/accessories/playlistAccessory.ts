@@ -13,7 +13,7 @@ export class PlaylistAccessory {
     playlistName: string,
   ) {
     const { Service, Characteristic } = api.hap;
-    accessory.displayName = `Musik ${playlistName} ${zoneDisplayName}`;
+    accessory.displayName = `${playlistName} ${zoneDisplayName}`;
     accessory
       .getService(Service.AccessoryInformation)!
       .setCharacteristic(Characteristic.Manufacturer, 'Roon')

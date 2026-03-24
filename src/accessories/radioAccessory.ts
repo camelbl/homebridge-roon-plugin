@@ -13,7 +13,7 @@ export class RadioAccessory {
     stationName: string,
   ) {
     const { Service, Characteristic } = api.hap;
-    accessory.displayName = `Musik ${stationName} ${zoneDisplayName}`;
+    accessory.displayName = `${stationName} ${zoneDisplayName}`;
     accessory
       .getService(Service.AccessoryInformation)!
       .setCharacteristic(Characteristic.Manufacturer, 'Roon')

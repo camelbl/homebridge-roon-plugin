@@ -13,7 +13,7 @@ export class GenreAccessory {
     genreName: string,
   ) {
     const { Service, Characteristic } = api.hap;
-    accessory.displayName = `Musik ${genreName} ${zoneDisplayName}`;
+    accessory.displayName = `${genreName} ${zoneDisplayName}`;
     accessory
       .getService(Service.AccessoryInformation)!
       .setCharacteristic(Characteristic.Manufacturer, 'Roon')
