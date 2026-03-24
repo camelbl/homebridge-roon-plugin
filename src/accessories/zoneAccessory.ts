@@ -74,22 +74,39 @@ export class ZoneAccessory {
       tvSpeaker = this.accessory.addService(Svc.TelevisionSpeaker);
     }
     tv.addLinkedService(tvSpeaker);
+    // RELATIVE_WITH_CURRENT lets HomeKit use VolumeSelector (physical buttons) AND absolute Volume.
     tvSpeaker.setCharacteristic(
       Characteristic.VolumeControlType,
-      Characteristic.VolumeControlType.ABSOLUTE,
+      Characteristic.VolumeControlType.RELATIVE_WITH_CURRENT,
     );
 
     tvSpeaker
       .getCharacteristic(Characteristic.Volume)!
+      .onGet(() => {
+        const z = this.roon.getZones().find((z) => z.zone_id === this.zoneId);
+        return z?.volumePercent ?? 0;
+      })
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
         this.roon.setVolume(this.zoneId, value as number);
       });
 
-    tvSpeaker.getCharacteristic(Characteristic.Mute)!.onSet((value: CharacteristicValue) => {
-      if (this.updatingFromRoon) return;
-      this.roon.setMuted(this.zoneId, value as boolean);
-    });
+    tvSpeaker.getCharacteristic(Characteristic.Mute)!
+      .onGet(() => {
+        const z = this.roon.getZones().find((z) => z.zone_id === this.zoneId);
+        return z?.isMuted ?? false;
+      })
+      .onSet((value: CharacteristicValue) => {
+        if (this.updatingFromRoon) return;
+        this.roon.setMuted(this.zoneId, value as boolean);
+      });
+
+    // VolumeSelector: triggered by physical volume buttons and iOS TV remote.
+    tvSpeaker.getCharacteristic(Characteristic.VolumeSelector)!
+      .onSet((value: CharacteristicValue) => {
+        const increment = value === Characteristic.VolumeSelector.INCREMENT;
+        this.roon.changeVolumeRelative(this.zoneId, increment ? 5 : -5);
+      });
 
     this.roon.onZoneUpdate((z) => {
       if (z.zone_id !== this.zoneId) return;

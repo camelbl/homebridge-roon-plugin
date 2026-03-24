@@ -633,6 +633,27 @@ export class RoonConnection extends EventEmitter {
     }
   }
 
+  /** Relative volume change in percent-points (e.g. +5 or -5). */
+  changeVolumeRelative(zone: string, delta: number): void {
+    try {
+      const z = this.resolveZoneRef(zone);
+      const transport = this.requireCore().services.RoonApiTransport;
+      const outputs = z.outputs ? Object.values(z.outputs) : [];
+      for (const o of outputs) {
+        const vol = o.volume;
+        if (!vol) continue;
+        if (vol.type === 'incremental') {
+          transport.change_volume(o, 'relative_step', delta > 0 ? 1 : -1, this.transportResult(`vol_step(${o.display_name})`));
+        } else if (vol.min != null && vol.max != null && vol.value != null) {
+          const step = ((vol.max - vol.min) * Math.abs(delta)) / 100;
+          transport.change_volume(o, 'relative', delta > 0 ? step : -step, this.transportResult(`vol_rel(${o.display_name})`));
+        }
+      }
+    } catch (e) {
+      this.emit('error', e);
+    }
+  }
+
   setMuted(zone: string, muted: boolean): void {
     try {
       const z = this.resolveZoneRef(zone);
