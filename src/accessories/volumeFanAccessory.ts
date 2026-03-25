@@ -99,32 +99,6 @@ export class VolumeFanAccessory {
         else this.roon.stop(this.zoneId);
       });
 
-    // Some HomeKit clients only render controllable cards when Active is present.
-    svc.getCharacteristic(Characteristic.Active)
-      .onGet(() => {
-        const state = getZ()?.state ?? 'stopped';
-        const value = state === 'playing' || state === 'paused' || state === 'loading'
-          ? Characteristic.Active.ACTIVE
-          : Characteristic.Active.INACTIVE;
-        this.log.info(`[DBG-H17] Active onGet zoneId=${this.zoneId} value=${value}`);
-        // #region agent log
-        fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-9',hypothesisId:'H10',location:'src/accessories/volumeFanAccessory.ts:Active.onGet',message:'active requested by HomeKit',data:{zoneId:this.zoneId,value},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
-        return value;
-      })
-      .onSet((value: CharacteristicValue) => {
-        if (this.updatingFromRoon) return;
-        const active = value as number;
-        this.log.info(`[DBG-H17] Active onSet zoneId=${this.zoneId} value=${active}`);
-        // #region agent log
-        fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-9',hypothesisId:'H10',location:'src/accessories/volumeFanAccessory.ts:Active.onSet',message:'active set from HomeKit',data:{zoneId:this.zoneId,active},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
-        if (active === Characteristic.Active.ACTIVE) {
-          this.roon.play(this.zoneId);
-        } else {
-          this.roon.stop(this.zoneId);
-        }
-      });
 
     // Optional: volume slider.
     svc.getCharacteristic(Characteristic.Volume)
@@ -222,16 +196,6 @@ export class VolumeFanAccessory {
         svc.getCharacteristic(Characteristic.Mute)!.updateValue(z.isMuted);
       } catch (e) {
         this.log.error(`[DBG-H11E] mute update failed zoneId=${this.zoneId} value=${z.isMuted} err=${String(e)}`);
-        throw e;
-      }
-      try {
-        const activeValue =
-          z.state === 'playing' || z.state === 'paused' || z.state === 'loading'
-            ? Characteristic.Active.ACTIVE
-            : Characteristic.Active.INACTIVE;
-        svc.getCharacteristic(Characteristic.Active)!.updateValue(activeValue);
-      } catch (e) {
-        this.log.error(`[DBG-H11E] active update failed zoneId=${this.zoneId} err=${String(e)}`);
         throw e;
       }
       // #region agent log
