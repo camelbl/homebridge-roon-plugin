@@ -19,15 +19,17 @@ export class VolumeFanAccessory {
     const name = (this.accessory.context.zoneDisplayName as string) || 'Roon Volume';
     this.accessory.displayName = name;
 
+    const serial = `roon-zone-${this.zoneId}`;
     const infoSvc = this.accessory
       .getService(Svc.AccessoryInformation)!
       .setCharacteristic(Characteristic.Manufacturer, 'Roon')
-      .setCharacteristic(Characteristic.Model, 'Volume (SmartSpeaker)');
+      .setCharacteristic(Characteristic.Model, 'Volume (SmartSpeaker)')
+      .setCharacteristic(Characteristic.SerialNumber, serial);
     this.log.info(
-      `[DBG-H16] accessory info zoneId=${this.zoneId} serial=${String(infoSvc.getCharacteristic(Characteristic.SerialNumber).value ?? '')} category=${this.accessory.category}`,
+      `[DBG-H16] accessory info zoneId=${this.zoneId} serial=${String(infoSvc.getCharacteristic(Characteristic.SerialNumber).value ?? '')} expectedSerial=${serial} category=${this.accessory.category}`,
     );
     // #region agent log
-    fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-7',hypothesisId:'H7',location:'src/accessories/volumeFanAccessory.ts:constructor',message:'accessory info snapshot',data:{zoneId:this.zoneId,serial:String(infoSvc.getCharacteristic(Characteristic.SerialNumber).value ?? ''),category:this.accessory.category},timestamp:Date.now()})}).catch(()=>{});
+    fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-8',hypothesisId:'H7',location:'src/accessories/volumeFanAccessory.ts:constructor',message:'accessory info snapshot',data:{zoneId:this.zoneId,serial:String(infoSvc.getCharacteristic(Characteristic.SerialNumber).value ?? ''),expectedSerial:serial,category:this.accessory.category},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
 
     // Cleanup from older versions (when this accessory was implemented as Lightbulb/Fan/Speaker).
