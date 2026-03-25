@@ -34,29 +34,41 @@
       "includeRadio": {
         "title": "Include Internet Radio switches",
         "type": "boolean",
-        "default": true
+        "default": false
       },
       "includePlaylists": {
         "title": "Include Playlist switches",
         "type": "boolean",
-        "default": true
+        "default": false
       },
       "includeGenres": {
         "title": "Include Genre switches",
         "type": "boolean",
-        "default": true
+        "default": false
       },
       "includeVolumeLightbulb": {
-        "title": "Extra volume slider (Dimmer/Lightbulb) per zone",
+        "title": "Extra volume tile variant (off by default)",
         "type": "boolean",
-        "default": true,
-        "description": "Adds a separate Lightbulb tile per zone. Brightness = volume (0–100), On = mute toggle. Useful if iOS does not show the TV speaker volume slider."
+        "default": false,
+        "description": "Adds an additional volume tile per zone. Turn this off for a minimal HomeKit UI."
       },
       "includeVolumeFan": {
-        "title": "Extra volume slider (Fan) per zone",
+        "title": "Volume tile (speaker) per zone",
         "type": "boolean",
         "default": true,
-        "description": "Adds a separate Fan tile per zone. RotationSpeed = volume (0–100), Active = mute toggle. Useful alternative slider presentation."
+        "description": "Adds the main volume tile per zone."
+      },
+      "includeZoneControllers": {
+        "title": "Show per-zone play/pause tile (minimal UI off by default)",
+        "type": "boolean",
+        "default": false,
+        "description": "Expose the extra per-zone play/pause tile (TV service). Disable for a minimal speaker-only UI."
+      },
+      "includeVolumeStepSwitches": {
+        "title": "Show per-zone +5/-5 volume step switches (minimal UI off by default)",
+        "type": "boolean",
+        "default": false,
+        "description": "Expose volume +/- buttons. Disable for a minimal UI."
       },
       "zoneDeviceType": {
         "title": "Zone device type (Home app grouping)",

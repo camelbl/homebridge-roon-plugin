@@ -20,6 +20,10 @@ export interface RoonCompleteConfig extends PlatformConfig {
   includeVolumeLightbulb?: boolean;
   /** Expose extra per-zone volume slider as a Fan v2 (RotationSpeed = volume, Active = mute). */
   includeVolumeFan?: boolean;
+  /** Expose per-zone play/pause tile (TV service). Disable for minimal HomeKit UI. */
+  includeZoneControllers?: boolean;
+  /** Expose per-zone +5/-5 volume step switch tiles. Disable for minimal HomeKit UI. */
+  includeVolumeStepSwitches?: boolean;
   /**
    * If > 0: expose only the first N radio stations / genres (as presets).
    * If 0: expose all.
@@ -176,25 +180,29 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     const zoneDeviceType = this.config.zoneDeviceType ?? 'tv';
     const includeVolLightbulb = this.config.includeVolumeLightbulb === true;
     const includeVolFan = this.config.includeVolumeFan === true;
+    const includeZoneControllers = this.config.includeZoneControllers !== false;
+    const includeVolumeStepSwitches = this.config.includeVolumeStepSwitches !== false;
 
     for (const z of zones) {
       const zu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:zone:${z.zone_id}`);
-      out.set(zu, {
-        name: z.display_name,
-        setup: (acc) => {
-          acc.context = { kind: 'zone', zoneId: z.zone_id, zoneDisplayName: z.display_name };
-          acc.category =
-            zoneDeviceType === 'tv'
-              ? Categories.TELEVISION
-              : zoneDeviceType === 'speaker'
-                ? Categories.SPEAKER
-                : Categories.SPEAKER;
-          if (!this.wired.has(zu)) {
-            this.wired.add(zu);
-            new ZoneAccessory(this.log, this.api, acc, this.roon!, z.zone_id, zoneDeviceType);
-          }
-        },
-      });
+      if (includeZoneControllers) {
+        out.set(zu, {
+          name: z.display_name,
+          setup: (acc) => {
+            acc.context = { kind: 'zone', zoneId: z.zone_id, zoneDisplayName: z.display_name };
+            acc.category =
+              zoneDeviceType === 'tv'
+                ? Categories.TELEVISION
+                : zoneDeviceType === 'speaker'
+                  ? Categories.SPEAKER
+                  : Categories.SPEAKER;
+            if (!this.wired.has(zu)) {
+              this.wired.add(zu);
+              new ZoneAccessory(this.log, this.api, acc, this.roon!, z.zone_id, zoneDeviceType);
+            }
+          },
+        });
+      }
 
       if (includeVolLightbulb) {
         // Use a new UUID prefix so iOS/Home doesn't cache the old "Lightbulb" UI representation.
@@ -241,33 +249,35 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
     for (const z of zones) {
       const room = z.display_name;
-      const volumeUuidUp = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeUp:${z.zone_id}`);
-      out.set(volumeUuidUp, {
-        name: `${room} lauter`,
-        setup: (acc) => {
-          const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
-          sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
-            const on = value as boolean;
-            if (!on) return;
-            this.roon!.changeVolumeRelative(z.zone_id, 5);
-            setTimeout(() => sw.getCharacteristic(Characteristic.On)!.updateValue(false), 1000);
-          });
-        },
-      });
+      if (includeVolumeStepSwitches) {
+        const volumeUuidUp = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeUp:${z.zone_id}`);
+        out.set(volumeUuidUp, {
+          name: `${room} lauter`,
+          setup: (acc) => {
+            const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
+            sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
+              const on = value as boolean;
+              if (!on) return;
+              this.roon!.changeVolumeRelative(z.zone_id, 5);
+              setTimeout(() => sw.getCharacteristic(Characteristic.On)!.updateValue(false), 1000);
+            });
+          },
+        });
 
-      const volumeUuidDown = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeDown:${z.zone_id}`);
-      out.set(volumeUuidDown, {
-        name: `${room} leiser`,
-        setup: (acc) => {
-          const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
-          sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
-            const on = value as boolean;
-            if (!on) return;
-            this.roon!.changeVolumeRelative(z.zone_id, -5);
-            setTimeout(() => sw.getCharacteristic(Characteristic.On)!.updateValue(false), 1000);
-          });
-        },
-      });
+        const volumeUuidDown = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeDown:${z.zone_id}`);
+        out.set(volumeUuidDown, {
+          name: `${room} leiser`,
+          setup: (acc) => {
+            const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
+            sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
+              const on = value as boolean;
+              if (!on) return;
+              this.roon!.changeVolumeRelative(z.zone_id, -5);
+              setTimeout(() => sw.getCharacteristic(Characteristic.On)!.updateValue(false), 1000);
+            });
+          },
+        });
+      }
 
       if (radioPresets.length) {
         const prevRadioUuid = this.api.hap.uuid.generate(`${PLUGIN_NAME}:radioPrev:${z.zone_id}`);
