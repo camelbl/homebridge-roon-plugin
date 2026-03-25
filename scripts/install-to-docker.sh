@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install / update homebridge-roon-complete inside a Homebridge Docker container.
+# Install / update homebridge-roon-control inside a Homebridge Docker container.
 #
 # How the official Homebridge Docker image works:
 #   hb-service runs on start and calls `npm install --prefix /var/lib/homebridge`, reading
@@ -17,7 +17,6 @@ CONTAINER="${HOMEBRIDGE_CONTAINER:-homebridge}"
 SRC="${1:-$(cd "$(dirname "$0")/.." && pwd)}"
 
 # Where hb-service keeps the plugin store inside the container.
-# This matches HB_SERVICE_STORAGE_PATH in /opt/homebridge/start.sh.
 HB_STORE="/var/lib/homebridge"
 
 if ! docker inspect "$CONTAINER" &>/dev/null; then
@@ -30,16 +29,21 @@ if [[ ! -d "$SRC/dist" ]] || [[ ! -f "$SRC/package.json" ]]; then
   exit 1
 fi
 
-# Resolve the host directory that backs the homebridge volume. Prefer writing
-# directly to the host path so changes land on the real volume before the container
-# starts again (docker cp can bypass the bind mount in some setups).
+# Resolve the host directory that backs the homebridge volume.
 HOST_HB="$(docker inspect "$CONTAINER" \
   --format '{{range .Mounts}}{{if eq .Destination "/homebridge"}}{{.Source}}{{end}}{{end}}' 2>/dev/null || true)"
 
-# The plugin source lives inside the volume as a named sub-directory so the
-# file: reference in package.json always resolves correctly.
-PLUGIN_SUBDIR="homebridge-roon-complete-src"
+PLUGIN_SUBDIR="homebridge-roon-control-src"
 PLUGIN_IN_CONTAINER="${HB_STORE}/${PLUGIN_SUBDIR}"
+
+# Remove old plugin entry (previous package name) to avoid duplicate registration.
+docker exec "$CONTAINER" sh -c "
+  PKG=${HB_STORE}/package.json
+  if [ -f \"\$PKG\" ] && command -v jq >/dev/null 2>&1; then
+    tmp=\$(mktemp)
+    jq 'del(.dependencies[\"homebridge-roon-complete\"])' \"\$PKG\" > \"\$tmp\" && mv \"\$tmp\" \"\$PKG\"
+  fi
+" 2>/dev/null || true
 
 echo "[1/4] Copying plugin source into ${PLUGIN_SUBDIR} on the volume"
 if [[ -n "$HOST_HB" && -d "$HOST_HB" ]]; then
@@ -66,20 +70,17 @@ echo "[2/4] Installing plugin's own npm dependencies (node-roon-api etc.)..."
 docker exec "$CONTAINER" npm install --omit=dev --prefix "$PLUGIN_IN_CONTAINER"
 
 echo "[3/4] Registering plugin in ${HB_STORE}/package.json via file: reference..."
-# Read current package.json (create a minimal one if it doesn't exist yet), add/update
-# the homebridge-roon-complete entry, and write it back.
 docker exec "$CONTAINER" sh -c "
   PKG=${HB_STORE}/package.json
   if [ ! -f \"\$PKG\" ]; then
     echo '{\"private\":true,\"dependencies\":{}}' > \"\$PKG\"
   fi
   tmp=\$(mktemp)
-  jq '.dependencies[\"homebridge-roon-complete\"] = \"file:./${PLUGIN_SUBDIR}\"' \"\$PKG\" > \"\$tmp\" && mv \"\$tmp\" \"\$PKG\"
+  jq '.dependencies[\"homebridge-roon-control\"] = \"file:./${PLUGIN_SUBDIR}\"' \"\$PKG\" > \"\$tmp\" && mv \"\$tmp\" \"\$PKG\"
   echo 'Updated package.json:'
   jq '.dependencies | keys' \"\$PKG\"
 "
 
-# Run npm install so the file: symlink is created in node_modules/ now (before restart).
 docker exec "$CONTAINER" npm install \
   --prefix "$HB_STORE" \
   --omit=dev \
@@ -87,8 +88,8 @@ docker exec "$CONTAINER" npm install \
   --no-fund \
   2>&1 | grep -v "^npm warn\|^npm notice" || true
 
-if ! docker exec "$CONTAINER" test -f "${HB_STORE}/node_modules/homebridge-roon-complete/package.json"; then
-  echo "ERROR: node_modules/homebridge-roon-complete/package.json not found after npm install."
+if ! docker exec "$CONTAINER" test -f "${HB_STORE}/node_modules/homebridge-roon-control/package.json"; then
+  echo "ERROR: node_modules/homebridge-roon-control/package.json not found after npm install."
   echo "  Run manually: docker exec $CONTAINER npm install --prefix $HB_STORE"
   exit 1
 fi
@@ -99,18 +100,18 @@ sleep 3
 
 echo ""
 echo "Checking post-restart..."
-if docker exec "$CONTAINER" test -f "${HB_STORE}/node_modules/homebridge-roon-complete/package.json"; then
+if docker exec "$CONTAINER" test -f "${HB_STORE}/node_modules/homebridge-roon-control/package.json"; then
   echo "  plugin in node_modules: OK"
 else
   echo "  WARNING: plugin disappeared from node_modules after restart — unexpected."
 fi
 
-LOADED="$(docker logs "$CONTAINER" 2>&1 | grep 'Loaded plugin: homebridge-roon-complete' | tail -1)"
+LOADED="$(docker logs "$CONTAINER" 2>&1 | grep 'Loaded plugin: homebridge-roon-control' | tail -1)"
 if [[ -n "$LOADED" ]]; then
   echo "  $LOADED"
   echo ""
   echo "Done. Homebridge loaded the plugin successfully."
 else
-  echo "  'Loaded plugin: homebridge-roon-complete' not yet in log (may still be starting)."
-  echo "  Run: docker logs $CONTAINER 2>&1 | grep -E 'homebridge-roon|RoonComplete|ERROR LOADING PLUGIN'"
+  echo "  'Loaded plugin: homebridge-roon-control' not yet in log (may still be starting)."
+  echo "  Run: docker logs $CONTAINER 2>&1 | grep -E 'homebridge-roon|RoonControl|ERROR LOADING PLUGIN'"
 fi
