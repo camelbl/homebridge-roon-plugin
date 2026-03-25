@@ -61,7 +61,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
   private async onLaunch(): Promise<void> {
     const c = this.config;
-    this.log.info('[DBG-H7] build marker=smartspeaker-v3-no-active-uuid-rollover');
+    this.log.info('[DBG-H7] build marker=lightbulb-volume-mode-v2');
     // #region agent log
     const __dbgPayload = {sessionId:'579cc3',runId:'run-2',hypothesisId:'H6',location:'src/platform.ts:64',message:'debug probe onLaunch',data:{roonHost:c.roonHost,roonPort:c.roonPort},timestamp:Date.now()};
     fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify(__dbgPayload)}).catch(()=>{});
