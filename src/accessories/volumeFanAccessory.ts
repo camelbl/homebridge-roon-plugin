@@ -43,6 +43,7 @@ export class VolumeFanAccessory {
       svc = this.accessory.addService(Svc.Lightbulb, name);
     }
     svc.setPrimaryService(true);
+    svc.setCharacteristic(Characteristic.ConfiguredName, name);
     svc.setCharacteristic(Characteristic.Name, name);
     this.log.info(
       `[DBG-H1] volumeFan wiring zoneId=${this.zoneId} service=Lightbulb hadFanv2=${!!staleServices[0]} hadSpeaker=${!!staleServices[1]} hadSmartSpeaker=${!!staleServices[2]}`,
