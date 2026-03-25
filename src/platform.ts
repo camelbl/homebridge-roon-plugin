@@ -140,7 +140,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
   private getRadioPresetStations(): string[] {
     if (!this.roon) return [];
-    const incR = this.config.includeRadio !== false;
+    const incR = this.config.includeRadio === true;
     if (!incR) return [];
 
     let radios = this.roon.getRadioStations();
@@ -160,7 +160,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
   private getGenrePresetGenres(): string[] {
     if (!this.roon) return [];
-    const incG = this.config.includeGenres !== false;
+    const incG = this.config.includeGenres === true;
     if (!incG) return [];
 
     let genres = this.roon.getGenres();
@@ -180,8 +180,8 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     const zoneDeviceType = this.config.zoneDeviceType ?? 'tv';
     const includeVolLightbulb = this.config.includeVolumeLightbulb === true;
     const includeVolFan = this.config.includeVolumeFan === true;
-    const includeZoneControllers = this.config.includeZoneControllers !== false;
-    const includeVolumeStepSwitches = this.config.includeVolumeStepSwitches !== false;
+    const includeZoneControllers = this.config.includeZoneControllers === true;
+    const includeVolumeStepSwitches = this.config.includeVolumeStepSwitches === true;
 
     for (const z of zones) {
       const zu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:zone:${z.zone_id}`);
@@ -238,7 +238,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     }
 
     const { Service, Characteristic } = this.api.hap;
-    const incP = this.config.includePlaylists !== false;
+    const incP = this.config.includePlaylists === true;
     const filterPl = this.asStringList(this.config.playlists);
 
     const radioPresets = this.getRadioPresetStations();
