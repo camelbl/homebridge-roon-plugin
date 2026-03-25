@@ -214,8 +214,8 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     return genres;
   }
 
-  private desiredUuids(): Map<string, { name: string; setup: (acc: PlatformAccessory) => void }> {
-    const out = new Map<string, { name: string; setup: (acc: PlatformAccessory) => void }>();
+  private desiredUuids(): Map<string, { name: string; setup: (acc: PlatformAccessory) => void; publishMode?: 'bridged' | 'external' }> {
+    const out = new Map<string, { name: string; setup: (acc: PlatformAccessory) => void; publishMode?: 'bridged' | 'external' }>();
     if (!this.roon) return out;
 
     const zones = this.roon.getZones().filter((z) => !this.excluded(z.display_name));
@@ -277,15 +277,16 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       }
 
       if (includeVolFan) {
-        const fu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeSpeakerFan:${z.zone_id}`);
+        const fu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeSpeakerFanExternalV1:${z.zone_id}`);
         this.log.info(`[DBG-H1] add volumeFan zone=${z.display_name} uuid=${fu}`);
         // #region agent log
         fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H1',location:'src/platform.ts:233',message:'adding volume fan accessory metadata',data:{zoneId:z.zone_id,zoneName:z.display_name,uuid:fu,kind:'volumeFan',category:'SPEAKER'},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         out.set(fu, {
           name: `Lautstärke (Fan) ${z.display_name}`,
+          publishMode: 'external',
           setup: (acc) => {
-            acc.context = { kind: 'volumeFan', zoneId: z.zone_id, zoneDisplayName: z.display_name };
+            acc.context = { kind: 'volumeFan', zoneId: z.zone_id, zoneDisplayName: z.display_name, publishMode: 'external' };
             acc.category = Categories.SPEAKER;
             if (!this.wired.has(fu)) {
               this.wired.add(fu);
@@ -499,7 +500,9 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
           // #region agent log
           fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H3',location:'src/platform.ts:444',message:'unregistering stale accessory',data:{uuid,displayName:acc.displayName,contextKind:acc.context?.kind},timestamp:Date.now()})}).catch(()=>{});
           // #endregion
-          this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [acc]);
+          if ((acc.context?.publishMode as string | undefined) !== 'external') {
+            this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [acc]);
+          }
           this.accessoryByUuid.delete(uuid);
           this.wired.delete(uuid);
         }
@@ -510,12 +513,18 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
         if (!acc) {
           acc = new this.api.platformAccessory(meta.name, uuid);
           this.accessoryByUuid.set(uuid, acc);
-          this.log.info(`[DBG-H10] register bridged accessory uuid=${uuid} name=${meta.name}`);
+          const publishMode = meta.publishMode ?? 'bridged';
+          this.log.info(`[DBG-H10] register ${publishMode} accessory uuid=${uuid} name=${meta.name}`);
           // #region agent log
-          fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-3',hypothesisId:'H4',location:'src/platform.ts:syncAccessories',message:'registering bridged platform accessory',data:{uuid,name:meta.name},timestamp:Date.now()})}).catch(()=>{});
+          fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-6',hypothesisId:'H6',location:'src/platform.ts:syncAccessories',message:'registering accessory with publish mode',data:{uuid,name:meta.name,publishMode},timestamp:Date.now()})}).catch(()=>{});
           // #endregion
-          this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [acc]);
           meta.setup(acc);
+          if (publishMode === 'external') {
+            this.log.info(`[DBG-H15] publishExternalAccessories uuid=${uuid} name=${meta.name}`);
+            this.api.publishExternalAccessories(PLUGIN_NAME, [acc]);
+          } else {
+            this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [acc]);
+          }
         } else {
           acc.displayName = meta.name;
           this.log.info(
