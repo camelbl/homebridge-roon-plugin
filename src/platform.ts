@@ -187,6 +187,9 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     const includeVolFan = this.config.includeVolumeFan === true;
     const includeZoneControllers = this.config.includeZoneControllers === true;
     const includeVolumeStepSwitches = this.config.includeVolumeStepSwitches === true;
+    this.log.info(
+      `[DBG-H2] config snapshot deviceType=${zoneDeviceType} volLightbulb=${includeVolLightbulb} volFan=${includeVolFan} zoneControllers=${includeZoneControllers} volStepSwitches=${includeVolumeStepSwitches} radio=${this.config.includeRadio === true} playlists=${this.config.includePlaylists === true} genres=${this.config.includeGenres === true}`,
+    );
     // #region agent log
     fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H2',location:'src/platform.ts:185',message:'desiredUuids config snapshot',data:{zoneDeviceType,includeVolLightbulb,includeVolFan,includeZoneControllers,includeVolumeStepSwitches,includeRadio:this.config.includeRadio,includePlaylists:this.config.includePlaylists,includeGenres:this.config.includeGenres,zoneNames:zones.map((z)=>z.display_name)},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
@@ -194,6 +197,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     for (const z of zones) {
       const zu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:zone:${z.zone_id}`);
       if (includeZoneControllers) {
+        this.log.info(`[DBG-H4] add zone controller zone=${z.display_name} uuid=${zu} type=${zoneDeviceType}`);
         // #region agent log
         fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H4',location:'src/platform.ts:193',message:'adding zone controller accessory',data:{zoneId:z.zone_id,zoneName:z.display_name,uuid:zu,zoneDeviceType},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
@@ -218,6 +222,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       if (includeVolLightbulb) {
         // Use a new UUID prefix so iOS/Home doesn't cache the old "Lightbulb" UI representation.
         const vu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeSpeakerLightbulb:${z.zone_id}`);
+        this.log.info(`[DBG-H5] add volumeLightbulb zone=${z.display_name} uuid=${vu}`);
         // #region agent log
         fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H5',location:'src/platform.ts:216',message:'adding volume lightbulb accessory metadata',data:{zoneId:z.zone_id,zoneName:z.display_name,uuid:vu,kind:'volumeLightbulb',category:'SPEAKER'},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
@@ -237,6 +242,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       if (includeVolFan) {
         // Use a new UUID prefix so iOS/Home doesn't cache the old "Fan" UI representation.
         const fu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeSpeakerFan:${z.zone_id}`);
+        this.log.info(`[DBG-H1] add volumeFan zone=${z.display_name} uuid=${fu}`);
         // #region agent log
         fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H1',location:'src/platform.ts:233',message:'adding volume fan accessory metadata',data:{zoneId:z.zone_id,zoneName:z.display_name,uuid:fu,kind:'volumeFan',category:'SPEAKER'},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
@@ -443,6 +449,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     try {
       const desired = this.desiredUuids();
       const visibleZones = this.roon.getZones().filter((z) => !this.excluded(z.display_name));
+      this.log.info(`[DBG-H2] sync desired=${desired.size} existing=${this.accessoryByUuid.size} visibleZones=${visibleZones.map((z) => z.display_name).join(',')}`);
       // #region agent log
       fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H2',location:'src/platform.ts:435',message:'syncAccessories desired/existing counts',data:{visibleZones:visibleZones.map((z)=>z.display_name),desiredCount:desired.size,existingCount:this.accessoryByUuid.size},timestamp:Date.now()})}).catch(()=>{});
       // #endregion
@@ -452,6 +459,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
       for (const [uuid, acc] of [...this.accessoryByUuid.entries()]) {
         if (!desired.has(uuid)) {
+          this.log.info(`[DBG-H3] unregister stale uuid=${uuid} name=${acc.displayName} kind=${String(acc.context?.kind ?? '')}`);
           // #region agent log
           fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H3',location:'src/platform.ts:444',message:'unregistering stale accessory',data:{uuid,displayName:acc.displayName,contextKind:acc.context?.kind},timestamp:Date.now()})}).catch(()=>{});
           // #endregion

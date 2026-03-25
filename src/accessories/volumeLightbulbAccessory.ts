@@ -4,6 +4,7 @@ import { RoonConnection, Zone } from '../roonConnection';
 
 export class VolumeLightbulbAccessory {
   private updatingFromRoon = false;
+  private readonly log: Logger;
 
   constructor(
     _log: Logger,
@@ -12,6 +13,7 @@ export class VolumeLightbulbAccessory {
     private readonly roon: RoonConnection,
     private readonly zoneId: string,
   ) {
+    this.log = _log;
     const { Service: Svc, Characteristic } = api.hap;
 
     const name = (this.accessory.context.zoneDisplayName as string) || 'Roon Volume';
@@ -32,6 +34,9 @@ export class VolumeLightbulbAccessory {
     if (!svc) {
       svc = this.accessory.addService(Svc.SmartSpeaker, name);
     }
+    this.log.info(
+      `[DBG-H1] volumeLightbulb wiring zoneId=${this.zoneId} service=SmartSpeaker hadLightbulb=${!!staleServices[0]} hadFanv2=${!!staleServices[1]} hadSpeaker=${!!staleServices[2]}`,
+    );
     // #region agent log
     fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H1',location:'src/accessories/volumeLightbulbAccessory.ts:35',message:'volumeLightbulb service wiring',data:{zoneId:this.zoneId,serviceType:'SmartSpeaker',hadLightbulb:!!staleServices[0],hadFanv2:!!staleServices[1],hadSpeaker:!!staleServices[2],model:'Volume (SmartSpeaker)'},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
