@@ -277,7 +277,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       }
 
       if (includeVolFan) {
-        const fu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeSpeakerFan:${z.zone_id}`);
+        const fu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeSpeakerFanV3:${z.zone_id}`);
         this.log.info(`[DBG-H1] add volumeFan zone=${z.display_name} uuid=${fu}`);
         // #region agent log
         fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H1',location:'src/platform.ts:233',message:'adding volume fan accessory metadata',data:{zoneId:z.zone_id,zoneName:z.display_name,uuid:fu,kind:'volumeFan',category:'SPEAKER'},timestamp:Date.now()})}).catch(()=>{});
