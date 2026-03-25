@@ -22,20 +22,20 @@ export class VolumeLightbulbAccessory {
     this.accessory
       .getService(Svc.AccessoryInformation)!
       .setCharacteristic(Characteristic.Manufacturer, 'Roon')
-      .setCharacteristic(Characteristic.Model, 'Volume (SmartSpeaker)');
+      .setCharacteristic(Characteristic.Model, 'Volume (Speaker)');
 
-    // Cleanup from older versions (when this accessory was implemented as Lightbulb/Fan/Speaker).
-    const staleServices = [Svc.Lightbulb, Svc.Fanv2, Svc.Speaker].map((T) => this.accessory.getService(T));
+    // Cleanup from older versions (when this accessory was implemented as Lightbulb/Fan/SmartSpeaker).
+    const staleServices = [Svc.Lightbulb, Svc.Fanv2, Svc.SmartSpeaker].map((T) => this.accessory.getService(T));
     for (const s of staleServices) {
       if (s) this.accessory.removeService(s);
     }
 
-    let svc = this.accessory.getService(Svc.SmartSpeaker) as Service | undefined;
+    let svc = this.accessory.getService(Svc.Speaker) as Service | undefined;
     if (!svc) {
-      svc = this.accessory.addService(Svc.SmartSpeaker, name);
+      svc = this.accessory.addService(Svc.Speaker, name);
     }
     this.log.info(
-      `[DBG-H1] volumeLightbulb wiring zoneId=${this.zoneId} service=SmartSpeaker hadLightbulb=${!!staleServices[0]} hadFanv2=${!!staleServices[1]} hadSpeaker=${!!staleServices[2]}`,
+      `[DBG-H1] volumeLightbulb wiring zoneId=${this.zoneId} service=Speaker hadLightbulb=${!!staleServices[0]} hadFanv2=${!!staleServices[1]} hadSmartSpeaker=${!!staleServices[2]}`,
     );
     // #region agent log
     fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H1',location:'src/accessories/volumeLightbulbAccessory.ts:35',message:'volumeLightbulb service wiring',data:{zoneId:this.zoneId,serviceType:'SmartSpeaker',hadLightbulb:!!staleServices[0],hadFanv2:!!staleServices[1],hadSpeaker:!!staleServices[2],model:'Volume (SmartSpeaker)'},timestamp:Date.now()})}).catch(()=>{});
@@ -43,34 +43,18 @@ export class VolumeLightbulbAccessory {
 
     const getZ = () => this.roon.getZones().find((z) => z.zone_id === this.zoneId);
 
-    const mapToCurrentMediaState = (z: Zone | undefined): number => {
-      const state = z?.state ?? 'stopped';
-      if (state === 'playing') return Characteristic.CurrentMediaState.PLAY;
-      if (state === 'paused') return Characteristic.CurrentMediaState.PAUSE;
-      if (state === 'loading') return Characteristic.CurrentMediaState.LOADING;
-      return Characteristic.CurrentMediaState.STOP;
-    };
-
-    const mapTargetToAction = (target: number): { action: 'play' | 'pause' | 'stop'; mute?: boolean } => {
-      if (target === Characteristic.TargetMediaState.PLAY) return { action: 'play', mute: false };
-      if (target === Characteristic.TargetMediaState.PAUSE) return { action: 'pause', mute: false };
-      if (target === Characteristic.TargetMediaState.STOP) return { action: 'stop', mute: true };
-      return { action: 'stop', mute: true };
-    };
-
-    // Required by HAP SmartSpeaker.
-    svc.getCharacteristic(Characteristic.CurrentMediaState).onGet(() => mapToCurrentMediaState(getZ()));
-
-    svc.getCharacteristic(Characteristic.TargetMediaState)
-      .onGet(() => mapToCurrentMediaState(getZ()))
+    // Optional on Speaker, used as simple play/stop toggle in HomeKit.
+    svc.getCharacteristic(Characteristic.Active)
+      .onGet(() => {
+        const z = getZ();
+        return (z?.state ?? 'stopped') === 'playing'
+          ? Characteristic.Active.ACTIVE
+          : Characteristic.Active.INACTIVE;
+      })
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
-        const target = value as number;
-        const { action, mute } = mapTargetToAction(target);
-
-        if (typeof mute === 'boolean') this.roon.setMuted(this.zoneId, mute);
-        if (action === 'play') this.roon.play(this.zoneId);
-        else if (action === 'pause') this.roon.pause(this.zoneId);
+        const active = value === Characteristic.Active.ACTIVE;
+        if (active) this.roon.play(this.zoneId);
         else this.roon.stop(this.zoneId);
       });
 
@@ -85,7 +69,7 @@ export class VolumeLightbulbAccessory {
         this.roon.setVolume(this.zoneId, value as number);
       });
 
-    // Optional: mute toggle (kept in sync; "Off" is primarily handled via TargetMediaState).
+    // Required by Speaker service.
     svc.getCharacteristic(Characteristic.Mute)
       .onGet(() => {
         const z = getZ();
@@ -114,17 +98,9 @@ export class VolumeLightbulbAccessory {
   ): void {
     this.updatingFromRoon = true;
     try {
-      const mediaState =
-        z.state === 'playing'
-          ? Characteristic.CurrentMediaState.PLAY
-          : z.state === 'paused'
-            ? Characteristic.CurrentMediaState.PAUSE
-            : z.state === 'loading'
-              ? Characteristic.CurrentMediaState.LOADING
-              : Characteristic.CurrentMediaState.STOP;
-
-      svc.getCharacteristic(Characteristic.CurrentMediaState)!.updateValue(mediaState);
-      svc.getCharacteristic(Characteristic.TargetMediaState)!.updateValue(mediaState);
+      svc.getCharacteristic(Characteristic.Active)!.updateValue(
+        z.state === 'playing' ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE,
+      );
       svc.getCharacteristic(Characteristic.Volume)!.updateValue(z.volumePercent);
       svc.getCharacteristic(Characteristic.Mute)!.updateValue(z.isMuted);
     } finally {
