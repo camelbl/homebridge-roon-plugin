@@ -30,11 +30,19 @@ export class VolumeLightbulbAccessory {
     svc.getCharacteristic(Characteristic.On)
       .onGet(() => {
         const z = this.roon.getZones().find((z) => z.zone_id === this.zoneId);
-        return !(z?.isMuted ?? false);
+        // Tile "On" represents playback state, not mute.
+        return (z?.state ?? 'stopped') === 'playing';
       })
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
-        this.roon.setMuted(this.zoneId, !(value as boolean));
+        const on = value as boolean;
+        if (on) {
+          // Ensure volume changes during stop/mute don't leave us muted.
+          this.roon.setMuted(this.zoneId, false);
+          this.roon.play(this.zoneId);
+        } else {
+          this.roon.stop(this.zoneId);
+        }
       });
 
     svc.getCharacteristic(Characteristic.Brightness)
@@ -65,7 +73,7 @@ export class VolumeLightbulbAccessory {
   ): void {
     this.updatingFromRoon = true;
     try {
-      svc.getCharacteristic(Characteristic.On)!.updateValue(!z.isMuted);
+      svc.getCharacteristic(Characteristic.On)!.updateValue(z.state === 'playing');
       svc.getCharacteristic(Characteristic.Brightness)!.updateValue(z.volumePercent);
     } finally {
       this.updatingFromRoon = false;

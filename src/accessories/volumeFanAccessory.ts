@@ -30,12 +30,18 @@ export class VolumeFanAccessory {
     svc.getCharacteristic(Characteristic.Active)
       .onGet(() => {
         const z = this.roon.getZones().find((z) => z.zone_id === this.zoneId);
-        return (z?.isMuted ?? false) ? Characteristic.Active.INACTIVE : Characteristic.Active.ACTIVE;
+        // Tile "Active" represents playback state, not mute.
+        return (z?.state ?? 'stopped') === 'playing' ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE;
       })
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
         const active = value === Characteristic.Active.ACTIVE;
-        this.roon.setMuted(this.zoneId, !active);
+        if (active) {
+          this.roon.setMuted(this.zoneId, false);
+          this.roon.play(this.zoneId);
+        } else {
+          this.roon.stop(this.zoneId);
+        }
       });
 
     svc.getCharacteristic(Characteristic.RotationSpeed)
@@ -67,7 +73,7 @@ export class VolumeFanAccessory {
     this.updatingFromRoon = true;
     try {
       svc.getCharacteristic(Characteristic.Active)!.updateValue(
-        z.isMuted ? Characteristic.Active.INACTIVE : Characteristic.Active.ACTIVE,
+        z.state === 'playing' ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE,
       );
       svc.getCharacteristic(Characteristic.RotationSpeed)!.updateValue(z.volumePercent);
     } finally {
