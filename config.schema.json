@@ -46,6 +46,22 @@
         "type": "boolean",
         "default": true
       },
+      "radioPresetCount": {
+        "title": "Radio preset count (top used)",
+        "type": "integer",
+        "default": 5,
+        "minimum": 0,
+        "maximum": 50,
+        "description": "How many radio stations to expose as presets (per zone). 0 = expose all stations (can create many tiles)."
+      },
+      "genrePresetCount": {
+        "title": "Genre preset count (top used)",
+        "type": "integer",
+        "default": 5,
+        "minimum": 0,
+        "maximum": 50,
+        "description": "How many genres to expose as presets (per zone). 0 = expose all genres (can create many tiles)."
+      },
       "radioStations": {
         "title": "Radio stations filter",
         "type": "array",

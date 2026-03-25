@@ -13,6 +13,12 @@ export interface RoonCompleteConfig extends PlatformConfig {
   includeRadio?: boolean;
   includePlaylists?: boolean;
   includeGenres?: boolean;
+  /**
+   * If > 0: expose only the first N radio stations / genres (as presets).
+   * If 0: expose all.
+   */
+  radioPresetCount?: number;
+  genrePresetCount?: number;
   radioStations?: string[];
   playlists?: string[];
 }
@@ -22,6 +28,8 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
   private readonly wired = new Set<string>();
   private roon: RoonConnection | null = null;
   private prevZoneKey: string | null = null;
+  private readonly radioPresetCurrentByZone = new Map<string, string>();
+  private readonly genrePresetCurrentByZone = new Map<string, string>();
 
   constructor(
     public readonly log: Logger,
@@ -119,6 +127,39 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     return this.asStringList(this.config.excludeZones).includes(name);
   }
 
+  private getRadioPresetStations(): string[] {
+    if (!this.roon) return [];
+    const incR = this.config.includeRadio !== false;
+    if (!incR) return [];
+
+    let radios = this.roon.getRadioStations();
+    const filterRadio = this.asStringList(this.config.radioStations);
+
+    // If user provided an explicit filter list: treat that list as the preset set.
+    if (filterRadio.length) {
+      return radios.filter((t) => filterRadio.includes(t));
+    }
+
+    const presetCount = typeof this.config.radioPresetCount === 'number' ? this.config.radioPresetCount : 5;
+    if (presetCount > 0) {
+      radios = radios.slice(0, presetCount);
+    }
+    return radios;
+  }
+
+  private getGenrePresetGenres(): string[] {
+    if (!this.roon) return [];
+    const incG = this.config.includeGenres !== false;
+    if (!incG) return [];
+
+    let genres = this.roon.getGenres();
+    const presetCount = typeof this.config.genrePresetCount === 'number' ? this.config.genrePresetCount : 5;
+    if (presetCount > 0) {
+      genres = genres.slice(0, presetCount);
+    }
+    return genres;
+  }
+
   private desiredUuids(): Map<string, { name: string; setup: (acc: PlatformAccessory) => void }> {
     const out = new Map<string, { name: string; setup: (acc: PlatformAccessory) => void }>();
     if (!this.roon) return out;
@@ -141,22 +182,138 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       });
     }
 
-    const incR = this.config.includeRadio !== false;
+    const { Service, Characteristic } = this.api.hap;
     const incP = this.config.includePlaylists !== false;
-    const incG = this.config.includeGenres !== false;
-    const filterRadio = this.asStringList(this.config.radioStations);
     const filterPl = this.asStringList(this.config.playlists);
 
-    let radios = incR ? this.roon.getRadioStations() : [];
-    if (filterRadio.length) radios = radios.filter((t) => filterRadio.includes(t));
+    const radioPresets = this.getRadioPresetStations();
+    const genrePresets = this.getGenrePresetGenres();
 
     let playlists = incP ? this.roon.getPlaylists() : [];
     if (filterPl.length) playlists = playlists.filter((t) => filterPl.includes(t));
 
-    const genres = incG ? this.roon.getGenres() : [];
-
     for (const z of zones) {
-      for (const station of radios) {
+      const volumeUuidUp = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeUp:${z.zone_id}`);
+      out.set(volumeUuidUp, {
+        name: `Lautstärke + ${z.display_name}`,
+        setup: (acc) => {
+          const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
+          sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
+            const on = value as boolean;
+            if (!on) return;
+            this.roon!.changeVolumeRelative(z.zone_id, 5);
+            setTimeout(() => sw.getCharacteristic(Characteristic.On)!.updateValue(false), 1000);
+          });
+        },
+      });
+
+      const volumeUuidDown = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeDown:${z.zone_id}`);
+      out.set(volumeUuidDown, {
+        name: `Lautstärke - ${z.display_name}`,
+        setup: (acc) => {
+          const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
+          sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
+            const on = value as boolean;
+            if (!on) return;
+            this.roon!.changeVolumeRelative(z.zone_id, -5);
+            setTimeout(() => sw.getCharacteristic(Characteristic.On)!.updateValue(false), 1000);
+          });
+        },
+      });
+
+      if (radioPresets.length) {
+        const prevRadioUuid = this.api.hap.uuid.generate(`${PLUGIN_NAME}:radioPrev:${z.zone_id}`);
+        out.set(prevRadioUuid, {
+          name: `Vorheriger Sender ${z.display_name}`,
+          setup: (acc) => {
+            const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
+            sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
+              const on = value as boolean;
+              if (!on) return;
+              const presets = this.getRadioPresetStations();
+              if (!presets.length) return;
+              const current = this.radioPresetCurrentByZone.get(z.zone_id);
+              let idx = current ? presets.indexOf(current) : 0;
+              if (idx < 0) idx = 0;
+              idx = (idx - 1 + presets.length) % presets.length;
+              const next = presets[idx]!;
+              this.radioPresetCurrentByZone.set(z.zone_id, next);
+              this.roon!.playRadio(z.zone_id, next);
+              setTimeout(() => sw.getCharacteristic(Characteristic.On)!.updateValue(false), 1000);
+            });
+          },
+        });
+
+        const nextRadioUuid = this.api.hap.uuid.generate(`${PLUGIN_NAME}:radioNext:${z.zone_id}`);
+        out.set(nextRadioUuid, {
+          name: `Nächster Sender ${z.display_name}`,
+          setup: (acc) => {
+            const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
+            sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
+              const on = value as boolean;
+              if (!on) return;
+              const presets = this.getRadioPresetStations();
+              if (!presets.length) return;
+              const current = this.radioPresetCurrentByZone.get(z.zone_id);
+              let idx = current ? presets.indexOf(current) : 0;
+              if (idx < 0) idx = 0;
+              idx = (idx + 1) % presets.length;
+              const next = presets[idx]!;
+              this.radioPresetCurrentByZone.set(z.zone_id, next);
+              this.roon!.playRadio(z.zone_id, next);
+              setTimeout(() => sw.getCharacteristic(Characteristic.On)!.updateValue(false), 1000);
+            });
+          },
+        });
+      }
+
+      if (genrePresets.length) {
+        const prevGenreUuid = this.api.hap.uuid.generate(`${PLUGIN_NAME}:genrePrev:${z.zone_id}`);
+        out.set(prevGenreUuid, {
+          name: `Vorheriges Genre ${z.display_name}`,
+          setup: (acc) => {
+            const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
+            sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
+              const on = value as boolean;
+              if (!on) return;
+              const presets = this.getGenrePresetGenres();
+              if (!presets.length) return;
+              const current = this.genrePresetCurrentByZone.get(z.zone_id);
+              let idx = current ? presets.indexOf(current) : 0;
+              if (idx < 0) idx = 0;
+              idx = (idx - 1 + presets.length) % presets.length;
+              const next = presets[idx]!;
+              this.genrePresetCurrentByZone.set(z.zone_id, next);
+              this.roon!.playGenre(z.zone_id, next);
+              setTimeout(() => sw.getCharacteristic(Characteristic.On)!.updateValue(false), 1000);
+            });
+          },
+        });
+
+        const nextGenreUuid = this.api.hap.uuid.generate(`${PLUGIN_NAME}:genreNext:${z.zone_id}`);
+        out.set(nextGenreUuid, {
+          name: `Nächstes Genre ${z.display_name}`,
+          setup: (acc) => {
+            const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
+            sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
+              const on = value as boolean;
+              if (!on) return;
+              const presets = this.getGenrePresetGenres();
+              if (!presets.length) return;
+              const current = this.genrePresetCurrentByZone.get(z.zone_id);
+              let idx = current ? presets.indexOf(current) : 0;
+              if (idx < 0) idx = 0;
+              idx = (idx + 1) % presets.length;
+              const next = presets[idx]!;
+              this.genrePresetCurrentByZone.set(z.zone_id, next);
+              this.roon!.playGenre(z.zone_id, next);
+              setTimeout(() => sw.getCharacteristic(Characteristic.On)!.updateValue(false), 1000);
+            });
+          },
+        });
+      }
+
+      for (const station of radioPresets) {
         const u = this.api.hap.uuid.generate(`${PLUGIN_NAME}:radio:${z.zone_id}:${station}`);
         out.set(u, {
           name: `${station} ${z.display_name}`,
@@ -165,7 +322,8 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
             acc.category = Categories.SWITCH;
             if (!this.wired.has(u)) {
               this.wired.add(u);
-              new RadioAccessory(this.log, this.api, acc, this.roon!, z.zone_id, z.display_name, station);
+              const indexCb = () => this.radioPresetCurrentByZone.set(z.zone_id, station);
+              new RadioAccessory(this.log, this.api, acc, this.roon!, z.zone_id, z.display_name, station, indexCb);
             }
           },
         });
@@ -184,7 +342,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
           },
         });
       }
-      for (const g of genres) {
+      for (const g of genrePresets) {
         const u = this.api.hap.uuid.generate(`${PLUGIN_NAME}:genre:${z.zone_id}:${g}`);
         out.set(u, {
           name: `${g} ${z.display_name}`,
@@ -193,7 +351,8 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
             acc.category = Categories.SWITCH;
             if (!this.wired.has(u)) {
               this.wired.add(u);
-              new GenreAccessory(this.log, this.api, acc, this.roon!, z.zone_id, z.display_name, g);
+              const indexCb = () => this.genrePresetCurrentByZone.set(z.zone_id, g);
+              new GenreAccessory(this.log, this.api, acc, this.roon!, z.zone_id, z.display_name, g, indexCb);
             }
           },
         });

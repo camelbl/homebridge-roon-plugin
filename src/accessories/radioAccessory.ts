@@ -11,6 +11,7 @@ export class RadioAccessory {
     zoneId: string,
     zoneDisplayName: string,
     stationName: string,
+    onSelected?: () => void,
   ) {
     const { Service, Characteristic } = api.hap;
     accessory.displayName = `${stationName} ${zoneDisplayName}`;
@@ -27,6 +28,7 @@ export class RadioAccessory {
     sw.getCharacteristic(Characteristic.On)!.onSet((value: CharacteristicValue) => {
       const on = value as boolean;
       if (!on) return;
+      onSelected?.();
       roon.playRadio(zoneId, stationName);
       setTimeout(() => {
         sw!.getCharacteristic(Characteristic.On)!.updateValue(false);

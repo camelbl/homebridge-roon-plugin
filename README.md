@@ -99,6 +99,8 @@ The script:
          "includeRadio": true,
          "includePlaylists": true,
          "includeGenres": true,
+        "radioPresetCount": 5,
+        "genrePresetCount": 5,
          "radioStations": [],
          "playlists": []
        }
@@ -124,6 +126,8 @@ The script:
 | `roonPort` | Extension WebSocket port (default `9330`; verify with `ss -tlnp \| grep Roon` on the Core host — use the port that responds to WebSocket upgrade) |
 | `excludeZones` | Zone display names to hide from HomeKit |
 | `includeRadio` / `includePlaylists` / `includeGenres` | Create per-zone switches (default `true`) |
+| `radioPresetCount` | Top-N radio presets per zone (default `5`; `0` = all) |
+| `genrePresetCount` | Top-N genre presets per zone (default `5`; `0` = all) |
 | `radioStations` / `playlists` | If non-empty, only those titles are exposed |
 
 ## License

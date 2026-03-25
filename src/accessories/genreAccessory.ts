@@ -11,6 +11,7 @@ export class GenreAccessory {
     zoneId: string,
     zoneDisplayName: string,
     genreName: string,
+    onSelected?: () => void,
   ) {
     const { Service, Characteristic } = api.hap;
     accessory.displayName = `${genreName} ${zoneDisplayName}`;
@@ -27,6 +28,7 @@ export class GenreAccessory {
     sw.getCharacteristic(Characteristic.On)!.onSet((value: CharacteristicValue) => {
       const on = value as boolean;
       if (!on) return;
+      onSelected?.();
       roon.playGenre(zoneId, genreName);
       setTimeout(() => {
         sw!.getCharacteristic(Characteristic.On)!.updateValue(false);

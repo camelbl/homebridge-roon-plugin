@@ -22,6 +22,8 @@
             "includeRadio": true,
             "includePlaylists": true,
             "includeGenres": true,
+            "radioPresetCount": 5,
+            "genrePresetCount": 5,
             "radioStations": [],
             "playlists": []
         }
