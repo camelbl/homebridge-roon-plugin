@@ -197,7 +197,8 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       });
 
       if (includeVolLightbulb) {
-        const vu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeLightbulb:${z.zone_id}`);
+        // Use a new UUID prefix so iOS/Home doesn't cache the old "Lightbulb" UI representation.
+        const vu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeSpeakerLightbulb:${z.zone_id}`);
         out.set(vu, {
           name: `Lautstärke ${z.display_name}`,
           setup: (acc) => {
@@ -212,7 +213,8 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       }
 
       if (includeVolFan) {
-        const fu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeFan:${z.zone_id}`);
+        // Use a new UUID prefix so iOS/Home doesn't cache the old "Fan" UI representation.
+        const fu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeSpeakerFan:${z.zone_id}`);
         out.set(fu, {
           name: `Lautstärke (Fan) ${z.display_name}`,
           setup: (acc) => {
