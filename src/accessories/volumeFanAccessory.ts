@@ -61,13 +61,30 @@ export class VolumeFanAccessory {
     };
 
     // Required by HAP SmartSpeaker.
-    svc.getCharacteristic(Characteristic.CurrentMediaState).onGet(() => mapToCurrentMediaState(getZ()));
+    svc.getCharacteristic(Characteristic.CurrentMediaState).onGet(() => {
+      const value = mapToCurrentMediaState(getZ());
+      this.log.info(`[DBG-H13] CurrentMediaState onGet zoneId=${this.zoneId} value=${value}`);
+      // #region agent log
+      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-5',hypothesisId:'H4',location:'src/accessories/volumeFanAccessory.ts:CurrentMediaState.onGet',message:'current media state requested by HomeKit',data:{zoneId:this.zoneId,value},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      return value;
+    });
 
     svc.getCharacteristic(Characteristic.TargetMediaState)
-      .onGet(() => mapToTargetMediaState(getZ()))
+      .onGet(() => {
+        const value = mapToTargetMediaState(getZ());
+        this.log.info(`[DBG-H13] TargetMediaState onGet zoneId=${this.zoneId} value=${value}`);
+        // #region agent log
+        fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-5',hypothesisId:'H4',location:'src/accessories/volumeFanAccessory.ts:TargetMediaState.onGet',message:'target media state requested by HomeKit',data:{zoneId:this.zoneId,value},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        return value;
+      })
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
         const target = value as number;
+        // #region agent log
+        fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-4',hypothesisId:'H5',location:'src/accessories/volumeFanAccessory.ts:TargetMediaState.onSet',message:'target media state set',data:{zoneId:this.zoneId,target},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         if (target === Characteristic.TargetMediaState.PLAY) this.roon.play(this.zoneId);
         else if (target === Characteristic.TargetMediaState.PAUSE) this.roon.pause(this.zoneId);
         else this.roon.stop(this.zoneId);
@@ -77,18 +94,35 @@ export class VolumeFanAccessory {
     svc.getCharacteristic(Characteristic.Volume)
       .onGet(() => {
         const z = getZ();
-        return z?.volumePercent ?? 0;
+        const value = z?.volumePercent ?? 0;
+        this.log.info(`[DBG-H13] Volume onGet zoneId=${this.zoneId} value=${value}`);
+        // #region agent log
+        fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-5',hypothesisId:'H4',location:'src/accessories/volumeFanAccessory.ts:Volume.onGet',message:'volume requested by HomeKit',data:{zoneId:this.zoneId,value},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        return value;
       })
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
-        this.roon.setVolume(this.zoneId, value as number);
+        const requested = value as number;
+        this.log.info(
+          `[DBG-H12] volume onSet zoneId=${this.zoneId} requested=${requested} isFinite=${Number.isFinite(requested)}`,
+        );
+        // #region agent log
+        fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-4',hypothesisId:'H2',location:'src/accessories/volumeFanAccessory.ts:Volume.onSet',message:'volume set from HomeKit',data:{zoneId:this.zoneId,requested,isFinite:Number.isFinite(requested)},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        this.roon.setVolume(this.zoneId, requested);
       });
 
     // Optional: mute toggle.
     svc.getCharacteristic(Characteristic.Mute)
       .onGet(() => {
         const z = getZ();
-        return z?.isMuted ?? false;
+        const value = z?.isMuted ?? false;
+        this.log.info(`[DBG-H13] Mute onGet zoneId=${this.zoneId} value=${value}`);
+        // #region agent log
+        fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-5',hypothesisId:'H4',location:'src/accessories/volumeFanAccessory.ts:Mute.onGet',message:'mute requested by HomeKit',data:{zoneId:this.zoneId,value},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        return value;
       })
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
@@ -127,10 +161,36 @@ export class VolumeFanAccessory {
           : z.state === 'paused'
             ? Characteristic.TargetMediaState.PAUSE
             : Characteristic.TargetMediaState.STOP;
-      svc.getCharacteristic(Characteristic.CurrentMediaState)!.updateValue(currentState);
-      svc.getCharacteristic(Characteristic.TargetMediaState)!.updateValue(targetState);
-      svc.getCharacteristic(Characteristic.Volume)!.updateValue(z.volumePercent);
-      svc.getCharacteristic(Characteristic.Mute)!.updateValue(z.isMuted);
+      this.log.info(
+        `[DBG-H11] applyZone zoneId=${this.zoneId} state=${z.state} currentState=${currentState} targetState=${targetState} volume=${z.volumePercent} muted=${z.isMuted}`,
+      );
+      try {
+        svc.getCharacteristic(Characteristic.CurrentMediaState)!.updateValue(currentState);
+      } catch (e) {
+        this.log.error(`[DBG-H11E] currentMediaState update failed zoneId=${this.zoneId} value=${currentState} err=${String(e)}`);
+        throw e;
+      }
+      try {
+        svc.getCharacteristic(Characteristic.TargetMediaState)!.updateValue(targetState);
+      } catch (e) {
+        this.log.error(`[DBG-H11E] targetMediaState update failed zoneId=${this.zoneId} value=${targetState} err=${String(e)}`);
+        throw e;
+      }
+      try {
+        svc.getCharacteristic(Characteristic.Volume)!.updateValue(z.volumePercent);
+      } catch (e) {
+        this.log.error(`[DBG-H11E] volume update failed zoneId=${this.zoneId} value=${z.volumePercent} err=${String(e)}`);
+        throw e;
+      }
+      try {
+        svc.getCharacteristic(Characteristic.Mute)!.updateValue(z.isMuted);
+      } catch (e) {
+        this.log.error(`[DBG-H11E] mute update failed zoneId=${this.zoneId} value=${z.isMuted} err=${String(e)}`);
+        throw e;
+      }
+      // #region agent log
+      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-4',hypothesisId:'H1',location:'src/accessories/volumeFanAccessory.ts:applyZone',message:'applyZone updateValue payload',data:{zoneId:this.zoneId,state:z.state,currentState,targetState,volumePercent:z.volumePercent,isVolumeFinite:Number.isFinite(z.volumePercent),isMuted:z.isMuted},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
     } finally {
       this.updatingFromRoon = false;
     }

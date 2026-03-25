@@ -104,7 +104,18 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     // Register zone speakers immediately. refreshBrowseLists() can take minutes (deep Roon browse);
     // if it ran first, no accessories appeared in Homebridge/Home until it finished or hung.
     await this.syncAccessories();
-    await this.roon.refreshBrowseLists().catch((e) => this.log.warn('Browse lists:', e));
+    if (this.shouldRefreshBrowseLists()) {
+      this.log.info('[DBG-H9] browse refresh enabled on launch');
+      // #region agent log
+      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-3',hypothesisId:'H1',location:'src/platform.ts:onLaunch',message:'running browse refresh on launch',data:{includeRadio:this.config.includeRadio===true,includePlaylists:this.config.includePlaylists===true,includeGenres:this.config.includeGenres===true},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      await this.roon.refreshBrowseLists().catch((e) => this.log.warn('Browse lists:', e));
+    } else {
+      this.log.info('[DBG-H9] browse refresh skipped on launch (all browse features disabled)');
+      // #region agent log
+      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-3',hypothesisId:'H1',location:'src/platform.ts:onLaunch',message:'skipping browse refresh on launch',data:{includeRadio:this.config.includeRadio===true,includePlaylists:this.config.includePlaylists===true,includeGenres:this.config.includeGenres===true},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+    }
     await this.syncAccessories();
     this.prevZoneKey = [...this.roon.getZones().map((z) => z.zone_id)].sort().join('|');
   }
@@ -120,7 +131,18 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
   private async onZoneTopologyChanged(): Promise<void> {
     if (!this.roon) return;
     await this.syncAccessories();
-    await this.roon.refreshBrowseLists().catch((e) => this.log.warn('Browse lists:', e));
+    if (this.shouldRefreshBrowseLists()) {
+      this.log.info('[DBG-H9] browse refresh enabled on launch');
+      // #region agent log
+      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-3',hypothesisId:'H1',location:'src/platform.ts:onLaunch',message:'running browse refresh on launch',data:{includeRadio:this.config.includeRadio===true,includePlaylists:this.config.includePlaylists===true,includeGenres:this.config.includeGenres===true},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      await this.roon.refreshBrowseLists().catch((e) => this.log.warn('Browse lists:', e));
+    } else {
+      this.log.info('[DBG-H9] browse refresh skipped on launch (all browse features disabled)');
+      // #region agent log
+      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-3',hypothesisId:'H1',location:'src/platform.ts:onLaunch',message:'skipping browse refresh on launch',data:{includeRadio:this.config.includeRadio===true,includePlaylists:this.config.includePlaylists===true,includeGenres:this.config.includeGenres===true},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+    }
     await this.syncAccessories();
   }
 
@@ -130,7 +152,18 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     this.log.info('Roon: session restored — refreshing browse lists and accessories');
     this.prevZoneKey = null;
     await this.syncAccessories();
-    await this.roon.refreshBrowseLists().catch((e) => this.log.warn('Browse lists:', e));
+    if (this.shouldRefreshBrowseLists()) {
+      this.log.info('[DBG-H9] browse refresh enabled on launch');
+      // #region agent log
+      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-3',hypothesisId:'H1',location:'src/platform.ts:onLaunch',message:'running browse refresh on launch',data:{includeRadio:this.config.includeRadio===true,includePlaylists:this.config.includePlaylists===true,includeGenres:this.config.includeGenres===true},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      await this.roon.refreshBrowseLists().catch((e) => this.log.warn('Browse lists:', e));
+    } else {
+      this.log.info('[DBG-H9] browse refresh skipped on launch (all browse features disabled)');
+      // #region agent log
+      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-3',hypothesisId:'H1',location:'src/platform.ts:onLaunch',message:'skipping browse refresh on launch',data:{includeRadio:this.config.includeRadio===true,includePlaylists:this.config.includePlaylists===true,includeGenres:this.config.includeGenres===true},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+    }
     await this.syncAccessories();
     this.prevZoneKey = [...this.roon.getZones().map((z) => z.zone_id)].sort().join('|');
   }
@@ -142,6 +175,10 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
   private excluded(name: string): boolean {
     return this.asStringList(this.config.excludeZones).includes(name);
+  }
+
+  private shouldRefreshBrowseLists(): boolean {
+    return this.config.includeRadio === true || this.config.includePlaylists === true || this.config.includeGenres === true;
   }
 
   private getRadioPresetStations(): string[] {
@@ -473,10 +510,20 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
         if (!acc) {
           acc = new this.api.platformAccessory(meta.name, uuid);
           this.accessoryByUuid.set(uuid, acc);
+          this.log.info(`[DBG-H10] register bridged accessory uuid=${uuid} name=${meta.name}`);
+          // #region agent log
+          fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-3',hypothesisId:'H4',location:'src/platform.ts:syncAccessories',message:'registering bridged platform accessory',data:{uuid,name:meta.name},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [acc]);
           meta.setup(acc);
         } else {
           acc.displayName = meta.name;
+          this.log.info(
+            `[DBG-H14] reuse accessory uuid=${uuid} name=${meta.name} kind=${String(acc.context?.kind ?? '')} wired=${this.wired.has(uuid)}`,
+          );
+          // #region agent log
+          fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-5',hypothesisId:'H5',location:'src/platform.ts:syncAccessories(reuse)',message:'reusing cached accessory',data:{uuid,name:meta.name,contextKind:String(acc.context?.kind ?? ''),wired:this.wired.has(uuid)},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
           if (!this.wired.has(uuid)) {
             meta.setup(acc);
           }
