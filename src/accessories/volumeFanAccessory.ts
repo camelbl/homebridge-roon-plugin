@@ -34,8 +34,13 @@ export class VolumeFanAccessory {
     if (!svc) {
       svc = this.accessory.addService(Svc.SmartSpeaker, name);
     }
+    svc.setPrimaryService(true);
+    svc.setCharacteristic(Characteristic.ConfiguredName, name);
     this.log.info(
       `[DBG-H1] volumeFan wiring zoneId=${this.zoneId} service=SmartSpeaker hadLightbulb=${!!staleServices[0]} hadFanv2=${!!staleServices[1]} hadSpeaker=${!!staleServices[2]}`,
+    );
+    this.log.info(
+      `[DBG-H8] volumeFan service-map zoneId=${this.zoneId} services=${this.accessory.services.map((s) => s.UUID).join(',')} primaryUUID=${svc.UUID}`,
     );
     const getZ = () => this.roon.getZones().find((z) => z.zone_id === this.zoneId);
 
