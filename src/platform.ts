@@ -13,6 +13,7 @@ export interface RoonCompleteConfig extends PlatformConfig {
   includeRadio?: boolean;
   includePlaylists?: boolean;
   includeGenres?: boolean;
+  zoneDeviceType?: 'tv' | 'smartSpeaker' | 'speaker';
   /**
    * If > 0: expose only the first N radio stations / genres (as presets).
    * If 0: expose all.
@@ -166,6 +167,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
     const zones = this.roon.getZones().filter((z) => !this.excluded(z.display_name));
     const { Categories } = this.api.hap.Accessory;
+    const zoneDeviceType = this.config.zoneDeviceType ?? 'tv';
 
     for (const z of zones) {
       const zu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:zone:${z.zone_id}`);
@@ -173,10 +175,15 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
         name: z.display_name,
         setup: (acc) => {
           acc.context = { kind: 'zone', zoneId: z.zone_id, zoneDisplayName: z.display_name };
-          acc.category = Categories.TELEVISION;
+          acc.category =
+            zoneDeviceType === 'tv'
+              ? Categories.TELEVISION
+              : zoneDeviceType === 'speaker'
+                ? Categories.SPEAKER
+                : Categories.SPEAKER;
           if (!this.wired.has(zu)) {
             this.wired.add(zu);
-            new ZoneAccessory(this.log, this.api, acc, this.roon!, z.zone_id);
+            new ZoneAccessory(this.log, this.api, acc, this.roon!, z.zone_id, zoneDeviceType);
           }
         },
       });

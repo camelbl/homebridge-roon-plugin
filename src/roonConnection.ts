@@ -395,12 +395,18 @@ export class RoonConnection extends EventEmitter {
       const v = o.volume;
       if (!v) continue;
       if (v.type === 'number' && v.min != null && v.max != null && v.value != null) {
-        const pct = Math.round(((v.value - v.min) / (v.max - v.min)) * 100);
-        return { volPct: Math.max(0, Math.min(100, pct)), muted: !!v.is_muted };
+        const range = v.max - v.min;
+        if (!Number.isFinite(range) || range <= 0) continue;
+        const pct = Math.round(((v.value - v.min) / range) * 100);
+        const clamped = Math.max(0, Math.min(100, pct));
+        return { volPct: Number.isFinite(clamped) ? clamped : 0, muted: !!v.is_muted };
       }
       if (v.type === 'db' && v.min != null && v.max != null && v.value != null) {
-        const pct = Math.round(((v.value - v.min) / (v.max - v.min)) * 100);
-        return { volPct: Math.max(0, Math.min(100, pct)), muted: !!v.is_muted };
+        const range = v.max - v.min;
+        if (!Number.isFinite(range) || range <= 0) continue;
+        const pct = Math.round(((v.value - v.min) / range) * 100);
+        const clamped = Math.max(0, Math.min(100, pct));
+        return { volPct: Number.isFinite(clamped) ? clamped : 0, muted: !!v.is_muted };
       }
     }
     return { volPct: 0, muted: false };
@@ -619,12 +625,16 @@ export class RoonConnection extends EventEmitter {
       const z = this.resolveZoneRef(zone);
       const transport = this.requireCore().services.RoonApiTransport;
       const outputs = z.outputs ? Object.values(z.outputs) : [];
-      const v = Math.max(0, Math.min(100, volume));
+      const input = Number.isFinite(volume) ? volume : 0;
+      const v = Math.max(0, Math.min(100, Math.round(input)));
       for (const o of outputs) {
         const vol = o.volume;
         if (!vol || vol.type === 'incremental') continue;
         if (vol.min != null && vol.max != null) {
-          const abs = vol.min + (v / 100) * (vol.max - vol.min);
+          const range = vol.max - vol.min;
+          if (!Number.isFinite(range) || range <= 0) continue;
+          const abs = vol.min + (v / 100) * range;
+          if (!Number.isFinite(abs)) continue;
           transport.change_volume(o, 'absolute', abs, this.transportResult(`change_volume(${o.display_name})`));
         }
       }
@@ -639,14 +649,18 @@ export class RoonConnection extends EventEmitter {
       const z = this.resolveZoneRef(zone);
       const transport = this.requireCore().services.RoonApiTransport;
       const outputs = z.outputs ? Object.values(z.outputs) : [];
+      const d = Number.isFinite(delta) ? delta : 0;
       for (const o of outputs) {
         const vol = o.volume;
         if (!vol) continue;
         if (vol.type === 'incremental') {
-          transport.change_volume(o, 'relative_step', delta > 0 ? 1 : -1, this.transportResult(`vol_step(${o.display_name})`));
+          transport.change_volume(o, 'relative_step', d > 0 ? 1 : -1, this.transportResult(`vol_step(${o.display_name})`));
         } else if (vol.min != null && vol.max != null && vol.value != null) {
-          const step = ((vol.max - vol.min) * Math.abs(delta)) / 100;
-          transport.change_volume(o, 'relative', delta > 0 ? step : -step, this.transportResult(`vol_rel(${o.display_name})`));
+          const range = vol.max - vol.min;
+          if (!Number.isFinite(range) || range <= 0) continue;
+          const step = (range * Math.abs(d)) / 100;
+          if (!Number.isFinite(step) || step === 0) continue;
+          transport.change_volume(o, 'relative', d > 0 ? step : -step, this.transportResult(`vol_rel(${o.display_name})`));
         }
       }
     } catch (e) {

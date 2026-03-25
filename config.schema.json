@@ -46,6 +46,17 @@
         "type": "boolean",
         "default": true
       },
+      "zoneDeviceType": {
+        "title": "Zone device type (Home app grouping)",
+        "type": "string",
+        "default": "tv",
+        "oneOf": [
+          { "title": "TV (best compatibility)", "enum": ["tv"] },
+          { "title": "Smart Speaker (may show as unsupported on some iOS)", "enum": ["smartSpeaker"] },
+          { "title": "Speaker (may group differently / not show)", "enum": ["speaker"] }
+        ],
+        "description": "How each Roon zone is represented in HomeKit. TV is most reliable in iOS Home under \"Lautsprecher & TVs\". SmartSpeaker/Speaker can look more correct but may appear as \"Nicht unterstützt\" depending on iOS/HomeKit version."
+      },
       "radioPresetCount": {
         "title": "Radio preset count (top used)",
         "type": "integer",
