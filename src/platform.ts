@@ -277,16 +277,16 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       }
 
       if (includeVolFan) {
-        const fu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeSpeakerFanV3:${z.zone_id}`);
+        const fu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeLightFromFanV1:${z.zone_id}`);
         this.log.info(`[DBG-H1] add volumeFan zone=${z.display_name} uuid=${fu}`);
         // #region agent log
         fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H1',location:'src/platform.ts:233',message:'adding volume fan accessory metadata',data:{zoneId:z.zone_id,zoneName:z.display_name,uuid:fu,kind:'volumeFan',category:'SPEAKER'},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         out.set(fu, {
-          name: `Lautstärke (Fan) ${z.display_name}`,
+          name: `Lautstärke (Licht) ${z.display_name}`,
           setup: (acc) => {
             acc.context = { kind: 'volumeFan', zoneId: z.zone_id, zoneDisplayName: z.display_name };
-            acc.category = Categories.SPEAKER;
+            acc.category = Categories.LIGHTBULB;
             if (!this.wired.has(fu)) {
               this.wired.add(fu);
               new VolumeFanAccessory(this.log, this.api, acc, this.roon!, z.zone_id);
