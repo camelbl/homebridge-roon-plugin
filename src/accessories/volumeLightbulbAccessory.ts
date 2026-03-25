@@ -37,7 +37,7 @@ export class VolumeLightbulbAccessory {
     svc.setPrimaryService(true);
     svc.setCharacteristic(Characteristic.ConfiguredName, name);
 
-    this.log.info(`RoonComplete: wiring SmartSpeaker volume tile zone="${name}" (${this.zoneId})`);
+    this.log.info(`RoonControl: wiring SmartSpeaker volume tile zone="${name}" (${this.zoneId})`);
 
     const getZ = () => this.roon.getZones().find((z) => z.zone_id === this.zoneId);
 

@@ -14,8 +14,8 @@
             "platform": "config"
         },
         {
-            "platform": "RoonComplete",
-            "name": "RoonComplete",
+            "platform": "RoonControl",
+            "name": "RoonControl",
             "roonHost": "192.168.1.12",
             "roonPort": 9330,
             "excludeZones": [],

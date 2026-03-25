@@ -38,7 +38,7 @@ export class VolumeFanAccessory {
     svc.setPrimaryService(true);
     svc.setCharacteristic(Characteristic.Name, name);
 
-    this.log.info(`RoonComplete: wiring volume tile zone="${name}" (${this.zoneId})`);
+    this.log.info(`RoonControl: wiring volume tile zone="${name}" (${this.zoneId})`);
 
     const getZ = () => this.roon.getZones().find((z) => z.zone_id === this.zoneId);
 

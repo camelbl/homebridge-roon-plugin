@@ -8,7 +8,7 @@ import { GenreAccessory } from './accessories/genreAccessory';
 import { VolumeLightbulbAccessory } from './accessories/volumeLightbulbAccessory';
 import { VolumeFanAccessory } from './accessories/volumeFanAccessory';
 
-export interface RoonCompleteConfig extends PlatformConfig {
+export interface RoonControlConfig extends PlatformConfig {
   roonHost?: string;
   roonPort?: number;
   excludeZones?: string[];
@@ -30,7 +30,7 @@ export interface RoonCompleteConfig extends PlatformConfig {
   playlists?: string[];
 }
 
-export class RoonCompletePlatform implements DynamicPlatformPlugin {
+export class RoonControlPlatform implements DynamicPlatformPlugin {
   private readonly accessoryByUuid = new Map<string, PlatformAccessory>();
   private readonly wired = new Set<string>();
   private roon: RoonConnection | null = null;
@@ -40,14 +40,14 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
   constructor(
     public readonly log: Logger,
-    public readonly config: RoonCompleteConfig,
+    public readonly config: RoonControlConfig,
     public readonly api: API,
   ) {
     if (!this.config) {
       return;
     }
     this.api.on('didFinishLaunching', () => {
-      void this.onLaunch().catch((e) => this.log.error('RoonComplete: startup failed:', e));
+      void this.onLaunch().catch((e) => this.log.error('RoonControl: startup failed:', e));
     });
   }
 
@@ -427,12 +427,12 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       const desired = this.desiredUuids();
       const visibleZones = this.roon.getZones().filter((z) => !this.excluded(z.display_name));
       this.log.info(
-        `RoonComplete: HomeKit sync — ${visibleZones.length} zone(s) → ${desired.size} accessories`,
+        `RoonControl: HomeKit sync — ${visibleZones.length} zone(s) → ${desired.size} accessories`,
       );
 
       for (const [uuid, acc] of [...this.accessoryByUuid.entries()]) {
         if (!desired.has(uuid)) {
-          this.log.info(`RoonComplete: removing stale accessory "${acc.displayName}"`);
+          this.log.info(`RoonControl: removing stale accessory "${acc.displayName}"`);
           this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [acc]);
           this.accessoryByUuid.delete(uuid);
           this.wired.delete(uuid);
@@ -454,7 +454,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
         }
       }
     } catch (e) {
-      this.log.error('RoonComplete: syncAccessories failed:', e);
+      this.log.error('RoonControl: syncAccessories failed:', e);
       throw e;
     }
   }

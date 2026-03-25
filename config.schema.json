@@ -1,7 +1,7 @@
 {
-  "pluginAlias": "RoonComplete",
+  "pluginAlias": "RoonControl",
   "pluginType": "platform",
-  "singularDisplayName": "Roon Complete",
+  "singularDisplayName": "Roon Control",
   "headerDisplay": true,
   "schema": {
     "type": "object",
@@ -9,7 +9,7 @@
       "name": {
         "title": "Name",
         "type": "string",
-        "default": "RoonComplete",
+        "default": "RoonControl",
         "required": true
       },
       "roonHost": {

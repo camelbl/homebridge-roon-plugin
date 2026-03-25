@@ -63,7 +63,7 @@ interface RoonZoneRaw {
 export interface RoonConnectionOptions {
   roonHost?: string;
   roonPort?: number;
-  /** Homebridge storage directory — Roon tokens stored in homebridge-roon-complete-roonstate.json (not merged into config.json). */
+  /** Homebridge storage directory — Roon tokens stored in homebridge-roon-control-roonstate.json (not merged into config.json). */
   persistDir?: string;
 }
 
@@ -118,10 +118,10 @@ export class RoonConnection extends EventEmitter {
 
     const persist = RoonConnection.buildRoonPersistHandlers(opts.persistDir);
     this.roon = new RoonApi({
-      extension_id: 'com.homebridge.roon.complete',
-      display_name: 'Homebridge Roon Complete',
+      extension_id: 'com.homebridge.roon.control',
+      display_name: 'Homebridge Roon Control',
       display_version: '1.0.0',
-      publisher: 'homebridge-roon-complete',
+      publisher: 'homebridge-roon-control',
       email: 'none@example.com',
       website: 'https://github.com/homebridge/homebridge',
       log_level: process.env.HOMEBRIDGE_ROON_DEBUG === '1' ? 'all' : 'none',
@@ -156,7 +156,7 @@ export class RoonConnection extends EventEmitter {
     | { get_persisted_state: () => object; set_persisted_state: (state: object) => void }
     | undefined {
     if (!persistDir) return undefined;
-    const stateFile = path.join(persistDir, 'homebridge-roon-complete-roonstate.json');
+    const stateFile = path.join(persistDir, 'homebridge-roon-control-roonstate.json');
     let migrated = false;
 
     const migrateFromHomebridgeConfigOnce = (): void => {
@@ -260,7 +260,7 @@ export class RoonConnection extends EventEmitter {
 
     this.emit(
       'status',
-      `Roon: connecting to ${host}:${port} — in Roon open Settings → Extensions and enable "Homebridge Roon Complete" if it appears.`,
+      `Roon: connecting to ${host}:${port} — in Roon open Settings → Extensions and enable "Homebridge Roon Control" if it appears.`,
     );
     this.roon.ws_connect({
       host,

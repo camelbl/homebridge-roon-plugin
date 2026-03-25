@@ -1,7 +1,7 @@
 {
-  "name": "homebridge-roon-complete",
+  "name": "homebridge-roon-control",
   "version": "1.2.0",
-  "displayName": "Roon Complete",
+  "displayName": "Roon Control",
   "description": "Homebridge plugin for Roon — volume sliders, zone controllers, radio, playlists and genres in HomeKit",
   "main": "dist/index.js",
   "scripts": {

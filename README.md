@@ -1,6 +1,6 @@
-# homebridge-roon-complete
+# homebridge-roon-control
 
-[![npm](https://img.shields.io/npm/v/homebridge-roon-complete)](https://www.npmjs.com/package/homebridge-roon-complete)
+[![npm](https://img.shields.io/npm/v/homebridge-roon-control)](https://www.npmjs.com/package/homebridge-roon-control)
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 
 Homebridge platform plugin that exposes **Roon music zones** to Apple HomeKit.
@@ -23,18 +23,18 @@ Each zone appears as a volume slider tile (Lightbulb with Brightness = volume, O
 - Node.js ≥ 18
 - Homebridge ≥ 1.6.0
 - A running **Roon Core** reachable from the Homebridge host
-- In Roon: **Settings → Extensions → enable "Homebridge Roon Complete"**
+- In Roon: **Settings → Extensions → enable "Homebridge Roon Control"**
 
 ## Installation
 
 ### Via Homebridge UI (recommended)
 
-Search for **homebridge-roon-complete** in the Homebridge plugin search and install.
+Search for **homebridge-roon-control** in the Homebridge plugin search and install.
 
 ### Manual
 
 ```bash
-npm install -g homebridge-roon-complete
+npm install -g homebridge-roon-control
 ```
 
 ## Configuration
@@ -45,8 +45,8 @@ Add the platform to your `config.json` (or configure via the Homebridge UI):
 {
   "platforms": [
     {
-      "platform": "RoonComplete",
-      "name": "RoonComplete",
+      "platform": "RoonControl",
+      "name": "RoonControl",
       "roonHost": "192.168.1.10",
       "roonPort": 9330
     }
@@ -78,8 +78,8 @@ Add the platform to your `config.json` (or configure via the Homebridge UI):
 
 ```json
 {
-  "platform": "RoonComplete",
-  "name": "RoonComplete",
+  "platform": "RoonControl",
+  "name": "RoonControl",
   "roonHost": "192.168.1.10",
   "roonPort": 9330,
   "includeVolumeFan": true,
@@ -94,8 +94,8 @@ Add the platform to your `config.json` (or configure via the Homebridge UI):
 
 ```json
 {
-  "platform": "RoonComplete",
-  "name": "RoonComplete",
+  "platform": "RoonControl",
+  "name": "RoonControl",
   "roonHost": "192.168.1.10",
   "roonPort": 9330,
   "excludeZones": ["myMacBook"],
@@ -122,11 +122,11 @@ Add the platform to your `config.json` (or configure via the Homebridge UI):
 
 1. Start Homebridge — the plugin connects to Roon automatically.
 2. Open the **Roon desktop app** on the same machine as your Roon Core.
-3. Go to **Settings → Extensions** — "Homebridge Roon Complete" should appear.
+3. Go to **Settings → Extensions** — "Homebridge Roon Control" should appear.
 4. Click **Enable**.
 5. Homebridge log should show: `Roon: Core accepted the extension`.
 
-**Token storage:** Roon pairing tokens are saved in `homebridge-roon-complete-roonstate.json` under the Homebridge storage folder (not inside `config.json`). If pairing is lost, delete that file and re-enable the extension in Roon.
+**Token storage:** Roon pairing tokens are saved in `homebridge-roon-control-roonstate.json` under the Homebridge storage folder (not inside `config.json`). If pairing is lost, delete that file and re-enable the extension in Roon.
 
 ## Docker / NUC setup
 
