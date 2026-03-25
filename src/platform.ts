@@ -200,9 +200,10 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     if (filterPl.length) playlists = playlists.filter((t) => filterPl.includes(t));
 
     for (const z of zones) {
+      const room = z.display_name;
       const volumeUuidUp = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeUp:${z.zone_id}`);
       out.set(volumeUuidUp, {
-        name: `Lautstärke + ${z.display_name}`,
+        name: `${room} lauter`,
         setup: (acc) => {
           const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
           sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
@@ -216,7 +217,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
       const volumeUuidDown = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeDown:${z.zone_id}`);
       out.set(volumeUuidDown, {
-        name: `Lautstärke - ${z.display_name}`,
+        name: `${room} leiser`,
         setup: (acc) => {
           const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
           sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
@@ -231,7 +232,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       if (radioPresets.length) {
         const prevRadioUuid = this.api.hap.uuid.generate(`${PLUGIN_NAME}:radioPrev:${z.zone_id}`);
         out.set(prevRadioUuid, {
-          name: `Vorheriger Sender ${z.display_name}`,
+          name: `${room} Radio zurück`,
           setup: (acc) => {
             const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
             sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
@@ -253,7 +254,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
         const nextRadioUuid = this.api.hap.uuid.generate(`${PLUGIN_NAME}:radioNext:${z.zone_id}`);
         out.set(nextRadioUuid, {
-          name: `Nächster Sender ${z.display_name}`,
+          name: `${room} Radio weiter`,
           setup: (acc) => {
             const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
             sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
@@ -277,7 +278,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       if (genrePresets.length) {
         const prevGenreUuid = this.api.hap.uuid.generate(`${PLUGIN_NAME}:genrePrev:${z.zone_id}`);
         out.set(prevGenreUuid, {
-          name: `Vorheriges Genre ${z.display_name}`,
+          name: `${room} Genre zurück`,
           setup: (acc) => {
             const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
             sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
@@ -299,7 +300,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
         const nextGenreUuid = this.api.hap.uuid.generate(`${PLUGIN_NAME}:genreNext:${z.zone_id}`);
         out.set(nextGenreUuid, {
-          name: `Nächstes Genre ${z.display_name}`,
+          name: `${room} Genre weiter`,
           setup: (acc) => {
             const sw = acc.getService(Service.Switch) ?? acc.addService(Service.Switch, acc.displayName);
             sw.getCharacteristic(Characteristic.On)!.onSet((value: unknown) => {
@@ -323,14 +324,14 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       for (const station of radioPresets) {
         const u = this.api.hap.uuid.generate(`${PLUGIN_NAME}:radio:${z.zone_id}:${station}`);
         out.set(u, {
-          name: `${station} ${z.display_name}`,
+          name: `${room} ${station}`,
           setup: (acc) => {
-            acc.context = { kind: 'radio', zoneId: z.zone_id, zoneDisplayName: z.display_name, itemTitle: station };
+            acc.context = { kind: 'radio', zoneId: z.zone_id, zoneDisplayName: room, itemTitle: station };
             acc.category = Categories.SWITCH;
             if (!this.wired.has(u)) {
               this.wired.add(u);
               const indexCb = () => this.radioPresetCurrentByZone.set(z.zone_id, station);
-              new RadioAccessory(this.log, this.api, acc, this.roon!, z.zone_id, z.display_name, station, indexCb);
+              new RadioAccessory(this.log, this.api, acc, this.roon!, z.zone_id, room, station, indexCb);
             }
           },
         });
@@ -338,13 +339,13 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       for (const pl of playlists) {
         const u = this.api.hap.uuid.generate(`${PLUGIN_NAME}:playlist:${z.zone_id}:${pl}`);
         out.set(u, {
-          name: `${pl} ${z.display_name}`,
+          name: `${room} ${pl}`,
           setup: (acc) => {
-            acc.context = { kind: 'playlist', zoneId: z.zone_id, zoneDisplayName: z.display_name, itemTitle: pl };
+            acc.context = { kind: 'playlist', zoneId: z.zone_id, zoneDisplayName: room, itemTitle: pl };
             acc.category = Categories.SWITCH;
             if (!this.wired.has(u)) {
               this.wired.add(u);
-              new PlaylistAccessory(this.log, this.api, acc, this.roon!, z.zone_id, z.display_name, pl);
+              new PlaylistAccessory(this.log, this.api, acc, this.roon!, z.zone_id, room, pl);
             }
           },
         });
@@ -352,14 +353,14 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       for (const g of genrePresets) {
         const u = this.api.hap.uuid.generate(`${PLUGIN_NAME}:genre:${z.zone_id}:${g}`);
         out.set(u, {
-          name: `${g} ${z.display_name}`,
+          name: `${room} ${g}`,
           setup: (acc) => {
-            acc.context = { kind: 'genre', zoneId: z.zone_id, zoneDisplayName: z.display_name, itemTitle: g };
+            acc.context = { kind: 'genre', zoneId: z.zone_id, zoneDisplayName: room, itemTitle: g };
             acc.category = Categories.SWITCH;
             if (!this.wired.has(u)) {
               this.wired.add(u);
               const indexCb = () => this.genrePresetCurrentByZone.set(z.zone_id, g);
-              new GenreAccessory(this.log, this.api, acc, this.roon!, z.zone_id, z.display_name, g, indexCb);
+              new GenreAccessory(this.log, this.api, acc, this.roon!, z.zone_id, room, g, indexCb);
             }
           },
         });
