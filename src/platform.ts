@@ -14,6 +14,10 @@ export interface RoonCompleteConfig extends PlatformConfig {
   includePlaylists?: boolean;
   includeGenres?: boolean;
   zoneDeviceType?: 'tv' | 'smartSpeaker' | 'speaker';
+  /** Expose extra per-zone volume slider as a Lightbulb (Brightness = volume, On = mute). */
+  includeVolumeLightbulb?: boolean;
+  /** Expose extra per-zone volume slider as a Fan v2 (RotationSpeed = volume, Active = mute). */
+  includeVolumeFan?: boolean;
   /**
    * If > 0: expose only the first N radio stations / genres (as presets).
    * If 0: expose all.
