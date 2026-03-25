@@ -61,7 +61,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
   private async onLaunch(): Promise<void> {
     const c = this.config;
-    this.log.info('[DBG-H7] build marker=uuid-v2-volume-prefixes active');
+    this.log.info('[DBG-H7] build marker=smartspeaker-volume-mode active');
     // #region agent log
     const __dbgPayload = {sessionId:'579cc3',runId:'run-2',hypothesisId:'H6',location:'src/platform.ts:64',message:'debug probe onLaunch',data:{roonHost:c.roonHost,roonPort:c.roonPort},timestamp:Date.now()};
     fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify(__dbgPayload)}).catch(()=>{});
@@ -221,8 +221,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       }
 
       if (includeVolLightbulb) {
-        // v2 prefix: force fresh accessory identity after SmartSpeaker -> Speaker migration.
-        const vu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeSpeakerLightbulbV2:${z.zone_id}`);
+        const vu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeSpeakerLightbulb:${z.zone_id}`);
         this.log.info(`[DBG-H5] add volumeLightbulb zone=${z.display_name} uuid=${vu}`);
         // #region agent log
         fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H5',location:'src/platform.ts:216',message:'adding volume lightbulb accessory metadata',data:{zoneId:z.zone_id,zoneName:z.display_name,uuid:vu,kind:'volumeLightbulb',category:'SPEAKER'},timestamp:Date.now()})}).catch(()=>{});
@@ -241,8 +240,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       }
 
       if (includeVolFan) {
-        // v2 prefix: force fresh accessory identity after SmartSpeaker -> Speaker migration.
-        const fu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeSpeakerFanV2:${z.zone_id}`);
+        const fu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeSpeakerFan:${z.zone_id}`);
         this.log.info(`[DBG-H1] add volumeFan zone=${z.display_name} uuid=${fu}`);
         // #region agent log
         fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H1',location:'src/platform.ts:233',message:'adding volume fan accessory metadata',data:{zoneId:z.zone_id,zoneName:z.display_name,uuid:fu,kind:'volumeFan',category:'SPEAKER'},timestamp:Date.now()})}).catch(()=>{});

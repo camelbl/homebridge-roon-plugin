@@ -22,39 +22,49 @@ export class VolumeFanAccessory {
     this.accessory
       .getService(Svc.AccessoryInformation)!
       .setCharacteristic(Characteristic.Manufacturer, 'Roon')
-      .setCharacteristic(Characteristic.Model, 'Volume (Speaker)');
+      .setCharacteristic(Characteristic.Model, 'Volume (SmartSpeaker)');
 
-    // Cleanup from older versions (when this accessory was implemented as Lightbulb/Fan/SmartSpeaker).
-    const staleServices = [Svc.Lightbulb, Svc.Fanv2, Svc.SmartSpeaker].map((T) => this.accessory.getService(T));
+    // Cleanup from older versions (when this accessory was implemented as Lightbulb/Fan/Speaker).
+    const staleServices = [Svc.Lightbulb, Svc.Fanv2, Svc.Speaker].map((T) => this.accessory.getService(T));
     for (const s of staleServices) {
       if (s) this.accessory.removeService(s);
     }
 
-    let svc = this.accessory.getService(Svc.Speaker) as Service | undefined;
+    let svc = this.accessory.getService(Svc.SmartSpeaker) as Service | undefined;
     if (!svc) {
-      svc = this.accessory.addService(Svc.Speaker, name);
+      svc = this.accessory.addService(Svc.SmartSpeaker, name);
     }
     this.log.info(
-      `[DBG-H1] volumeFan wiring zoneId=${this.zoneId} service=Speaker hadLightbulb=${!!staleServices[0]} hadFanv2=${!!staleServices[1]} hadSmartSpeaker=${!!staleServices[2]}`,
+      `[DBG-H1] volumeFan wiring zoneId=${this.zoneId} service=SmartSpeaker hadLightbulb=${!!staleServices[0]} hadFanv2=${!!staleServices[1]} hadSpeaker=${!!staleServices[2]}`,
     );
-    // #region agent log
-    fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H1',location:'src/accessories/volumeFanAccessory.ts:35',message:'volumeFan service wiring',data:{zoneId:this.zoneId,serviceType:'SmartSpeaker',hadLightbulb:!!staleServices[0],hadFanv2:!!staleServices[1],hadSpeaker:!!staleServices[2],model:'Volume (SmartSpeaker)'},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-
     const getZ = () => this.roon.getZones().find((z) => z.zone_id === this.zoneId);
 
-    // Optional on Speaker, used as simple play/stop toggle in HomeKit.
-    svc.getCharacteristic(Characteristic.Active)
-      .onGet(() => {
-        const z = getZ();
-        return (z?.state ?? 'stopped') === 'playing'
-          ? Characteristic.Active.ACTIVE
-          : Characteristic.Active.INACTIVE;
-      })
+    const mapToCurrentMediaState = (z: Zone | undefined): number => {
+      const state = z?.state ?? 'stopped';
+      if (state === 'playing') return Characteristic.CurrentMediaState.PLAY;
+      if (state === 'paused') return Characteristic.CurrentMediaState.PAUSE;
+      if (state === 'loading') return Characteristic.CurrentMediaState.LOADING;
+      return Characteristic.CurrentMediaState.STOP;
+    };
+
+    const mapToTargetMediaState = (z: Zone | undefined): number => {
+      const state = z?.state ?? 'stopped';
+      if (state === 'playing') return Characteristic.TargetMediaState.PLAY;
+      if (state === 'paused') return Characteristic.TargetMediaState.PAUSE;
+      // TargetMediaState only supports PLAY/PAUSE/STOP (0..2), not LOADING.
+      return Characteristic.TargetMediaState.STOP;
+    };
+
+    // Required by HAP SmartSpeaker.
+    svc.getCharacteristic(Characteristic.CurrentMediaState).onGet(() => mapToCurrentMediaState(getZ()));
+
+    svc.getCharacteristic(Characteristic.TargetMediaState)
+      .onGet(() => mapToTargetMediaState(getZ()))
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
-        const active = value === Characteristic.Active.ACTIVE;
-        if (active) this.roon.play(this.zoneId);
+        const target = value as number;
+        if (target === Characteristic.TargetMediaState.PLAY) this.roon.play(this.zoneId);
+        else if (target === Characteristic.TargetMediaState.PAUSE) this.roon.pause(this.zoneId);
         else this.roon.stop(this.zoneId);
       });
 
@@ -69,7 +79,7 @@ export class VolumeFanAccessory {
         this.roon.setVolume(this.zoneId, value as number);
       });
 
-    // Required by Speaker service.
+    // Optional: mute toggle.
     svc.getCharacteristic(Characteristic.Mute)
       .onGet(() => {
         const z = getZ();
@@ -98,9 +108,22 @@ export class VolumeFanAccessory {
   ): void {
     this.updatingFromRoon = true;
     try {
-      svc.getCharacteristic(Characteristic.Active)!.updateValue(
-        z.state === 'playing' ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE,
-      );
+      const currentState =
+        z.state === 'playing'
+          ? Characteristic.CurrentMediaState.PLAY
+          : z.state === 'paused'
+            ? Characteristic.CurrentMediaState.PAUSE
+            : z.state === 'loading'
+              ? Characteristic.CurrentMediaState.LOADING
+              : Characteristic.CurrentMediaState.STOP;
+      const targetState =
+        z.state === 'playing'
+          ? Characteristic.TargetMediaState.PLAY
+          : z.state === 'paused'
+            ? Characteristic.TargetMediaState.PAUSE
+            : Characteristic.TargetMediaState.STOP;
+      svc.getCharacteristic(Characteristic.CurrentMediaState)!.updateValue(currentState);
+      svc.getCharacteristic(Characteristic.TargetMediaState)!.updateValue(targetState);
       svc.getCharacteristic(Characteristic.Volume)!.updateValue(z.volumePercent);
       svc.getCharacteristic(Characteristic.Mute)!.updateValue(z.isMuted);
     } finally {
