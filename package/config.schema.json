@@ -1,0 +1,17 @@
+{
+  "pluginAlias": "RoonOutputs",
+  "pluginType": "platform",
+  "singular": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "suffix": {
+        "title": "Suffix",
+        "type": "string",
+        "required": false,
+        "default": "Speaker",
+        "description": "Allows you to add a word after your output name that will show up in Homekit."
+      }
+    }
+  }
+}
