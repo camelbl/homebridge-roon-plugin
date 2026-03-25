@@ -627,9 +627,6 @@ export class RoonConnection extends EventEmitter {
       const outputs = z.outputs ? Object.values(z.outputs) : [];
       const input = Number.isFinite(volume) ? volume : 0;
       const v = Math.max(0, Math.min(100, Math.round(input)));
-      // #region agent log
-      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-4',hypothesisId:'H2',location:'src/roonConnection.ts:setVolume',message:'setVolume normalized input',data:{zone,input,normalized:v,outputs:outputs.length},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       for (const o of outputs) {
         const vol = o.volume;
         if (!vol || vol.type === 'incremental') continue;
@@ -638,9 +635,6 @@ export class RoonConnection extends EventEmitter {
           if (!Number.isFinite(range) || range <= 0) continue;
           const abs = vol.min + (v / 100) * range;
           if (!Number.isFinite(abs)) continue;
-          // #region agent log
-          fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-4',hypothesisId:'H3',location:'src/roonConnection.ts:setVolume',message:'setVolume absolute payload',data:{zone,output:o.display_name,type:vol.type,min:vol.min,max:vol.max,range,abs,isAbsFinite:Number.isFinite(abs)},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
           transport.change_volume(o, 'absolute', abs, this.transportResult(`change_volume(${o.display_name})`));
         }
       }

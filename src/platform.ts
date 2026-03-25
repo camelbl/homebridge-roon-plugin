@@ -16,18 +16,14 @@ export interface RoonCompleteConfig extends PlatformConfig {
   includePlaylists?: boolean;
   includeGenres?: boolean;
   zoneDeviceType?: 'tv' | 'smartSpeaker' | 'speaker' | 'audioReceiver';
-  /** Expose extra per-zone volume slider as a Lightbulb (Brightness = volume, On = mute). */
+  /** Expose extra per-zone volume slider as a Lightbulb (Brightness = volume, On = play/stop). */
   includeVolumeLightbulb?: boolean;
-  /** Expose extra per-zone volume slider as a Fan v2 (RotationSpeed = volume, Active = mute). */
+  /** Expose per-zone volume slider tile (Lightbulb: Brightness = volume, On = play/stop). */
   includeVolumeFan?: boolean;
-  /** Expose per-zone play/pause tile (TV service). Disable for minimal HomeKit UI. */
+  /** Expose per-zone play/stop zone controller tile. */
   includeZoneControllers?: boolean;
-  /** Expose per-zone +5/-5 volume step switch tiles. Disable for minimal HomeKit UI. */
+  /** Expose per-zone +5/-5 volume step switch tiles. */
   includeVolumeStepSwitches?: boolean;
-  /**
-   * If > 0: expose only the first N radio stations / genres (as presets).
-   * If 0: expose all.
-   */
   radioPresetCount?: number;
   genrePresetCount?: number;
   radioStations?: string[];
@@ -61,12 +57,6 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
   private async onLaunch(): Promise<void> {
     const c = this.config;
-    this.log.info('[DBG-H7] build marker=audio-receiver-v1');
-    // #region agent log
-    const __dbgPayload = {sessionId:'579cc3',runId:'run-2',hypothesisId:'H6',location:'src/platform.ts:64',message:'debug probe onLaunch',data:{roonHost:c.roonHost,roonPort:c.roonPort},timestamp:Date.now()};
-    fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify(__dbgPayload)}).catch(()=>{});
-    fetch('http://host.docker.internal:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify(__dbgPayload)}).catch(()=>{});
-    // #endregion
     const port =
       typeof c.roonPort === 'number'
         ? c.roonPort
@@ -101,20 +91,9 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
       }
     });
 
-    // Register zone speakers immediately. refreshBrowseLists() can take minutes (deep Roon browse);
-    // if it ran first, no accessories appeared in Homebridge/Home until it finished or hung.
     await this.syncAccessories();
     if (this.shouldRefreshBrowseLists()) {
-      this.log.info('[DBG-H9] browse refresh enabled on launch');
-      // #region agent log
-      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-3',hypothesisId:'H1',location:'src/platform.ts:onLaunch',message:'running browse refresh on launch',data:{includeRadio:this.config.includeRadio===true,includePlaylists:this.config.includePlaylists===true,includeGenres:this.config.includeGenres===true},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       await this.roon.refreshBrowseLists().catch((e) => this.log.warn('Browse lists:', e));
-    } else {
-      this.log.info('[DBG-H9] browse refresh skipped on launch (all browse features disabled)');
-      // #region agent log
-      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-3',hypothesisId:'H1',location:'src/platform.ts:onLaunch',message:'skipping browse refresh on launch',data:{includeRadio:this.config.includeRadio===true,includePlaylists:this.config.includePlaylists===true,includeGenres:this.config.includeGenres===true},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
     }
     await this.syncAccessories();
     this.prevZoneKey = [...this.roon.getZones().map((z) => z.zone_id)].sort().join('|');
@@ -132,43 +111,23 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     if (!this.roon) return;
     await this.syncAccessories();
     if (this.shouldRefreshBrowseLists()) {
-      this.log.info('[DBG-H9] browse refresh enabled on launch');
-      // #region agent log
-      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-3',hypothesisId:'H1',location:'src/platform.ts:onLaunch',message:'running browse refresh on launch',data:{includeRadio:this.config.includeRadio===true,includePlaylists:this.config.includePlaylists===true,includeGenres:this.config.includeGenres===true},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       await this.roon.refreshBrowseLists().catch((e) => this.log.warn('Browse lists:', e));
-    } else {
-      this.log.info('[DBG-H9] browse refresh skipped on launch (all browse features disabled)');
-      // #region agent log
-      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-3',hypothesisId:'H1',location:'src/platform.ts:onLaunch',message:'skipping browse refresh on launch',data:{includeRadio:this.config.includeRadio===true,includePlaylists:this.config.includePlaylists===true,includeGenres:this.config.includeGenres===true},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
     }
     await this.syncAccessories();
   }
 
-  /** After WebSocket loss + unpair, Roon paired again — refresh browse caches and accessories. */
   private async onRoonReconnected(): Promise<void> {
     if (!this.roon) return;
     this.log.info('Roon: session restored — refreshing browse lists and accessories');
     this.prevZoneKey = null;
     await this.syncAccessories();
     if (this.shouldRefreshBrowseLists()) {
-      this.log.info('[DBG-H9] browse refresh enabled on launch');
-      // #region agent log
-      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-3',hypothesisId:'H1',location:'src/platform.ts:onLaunch',message:'running browse refresh on launch',data:{includeRadio:this.config.includeRadio===true,includePlaylists:this.config.includePlaylists===true,includeGenres:this.config.includeGenres===true},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       await this.roon.refreshBrowseLists().catch((e) => this.log.warn('Browse lists:', e));
-    } else {
-      this.log.info('[DBG-H9] browse refresh skipped on launch (all browse features disabled)');
-      // #region agent log
-      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-3',hypothesisId:'H1',location:'src/platform.ts:onLaunch',message:'skipping browse refresh on launch',data:{includeRadio:this.config.includeRadio===true,includePlaylists:this.config.includePlaylists===true,includeGenres:this.config.includeGenres===true},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
     }
     await this.syncAccessories();
     this.prevZoneKey = [...this.roon.getZones().map((z) => z.zone_id)].sort().join('|');
   }
 
-  /** Homebridge UI can store list fields as non-arrays; guard to avoid sync throwing before any log line. */
   private asStringList(value: unknown): string[] {
     return Array.isArray(value) ? (value.filter((x) => typeof x === 'string') as string[]) : [];
   }
@@ -183,17 +142,13 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
   private getRadioPresetStations(): string[] {
     if (!this.roon) return [];
-    const incR = this.config.includeRadio === true;
-    if (!incR) return [];
+    if (this.config.includeRadio !== true) return [];
 
     let radios = this.roon.getRadioStations();
     const filterRadio = this.asStringList(this.config.radioStations);
-
-    // If user provided an explicit filter list: treat that list as the preset set.
     if (filterRadio.length) {
       return radios.filter((t) => filterRadio.includes(t));
     }
-
     const presetCount = typeof this.config.radioPresetCount === 'number' ? this.config.radioPresetCount : 5;
     if (presetCount > 0) {
       radios = radios.slice(0, presetCount);
@@ -203,8 +158,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
   private getGenrePresetGenres(): string[] {
     if (!this.roon) return [];
-    const incG = this.config.includeGenres === true;
-    if (!incG) return [];
+    if (this.config.includeGenres !== true) return [];
 
     let genres = this.roon.getGenres();
     const presetCount = typeof this.config.genrePresetCount === 'number' ? this.config.genrePresetCount : 5;
@@ -225,20 +179,10 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     const includeVolFan = this.config.includeVolumeFan === true;
     const includeZoneControllers = this.config.includeZoneControllers === true;
     const includeVolumeStepSwitches = this.config.includeVolumeStepSwitches === true;
-    this.log.info(
-      `[DBG-H2] config snapshot deviceType=${zoneDeviceType} volLightbulb=${includeVolLightbulb} volFan=${includeVolFan} zoneControllers=${includeZoneControllers} volStepSwitches=${includeVolumeStepSwitches} radio=${this.config.includeRadio === true} playlists=${this.config.includePlaylists === true} genres=${this.config.includeGenres === true}`,
-    );
-    // #region agent log
-    fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H2',location:'src/platform.ts:185',message:'desiredUuids config snapshot',data:{zoneDeviceType,includeVolLightbulb,includeVolFan,includeZoneControllers,includeVolumeStepSwitches,includeRadio:this.config.includeRadio,includePlaylists:this.config.includePlaylists,includeGenres:this.config.includeGenres,zoneNames:zones.map((z)=>z.display_name)},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
 
     for (const z of zones) {
-      const zu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:zone:${z.zone_id}`);
       if (includeZoneControllers) {
-        this.log.info(`[DBG-H4] add zone controller zone=${z.display_name} uuid=${zu} type=${zoneDeviceType}`);
-        // #region agent log
-        fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H4',location:'src/platform.ts:193',message:'adding zone controller accessory',data:{zoneId:z.zone_id,zoneName:z.display_name,uuid:zu,zoneDeviceType},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
+        const zu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:zone:${z.zone_id}`);
         out.set(zu, {
           name: z.display_name,
           setup: (acc) => {
@@ -259,10 +203,6 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
       if (includeVolLightbulb) {
         const vu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeSpeakerLightbulb:${z.zone_id}`);
-        this.log.info(`[DBG-H5] add volumeLightbulb zone=${z.display_name} uuid=${vu}`);
-        // #region agent log
-        fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H5',location:'src/platform.ts:216',message:'adding volume lightbulb accessory metadata',data:{zoneId:z.zone_id,zoneName:z.display_name,uuid:vu,kind:'volumeLightbulb',category:'SPEAKER'},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         out.set(vu, {
           name: `Lautstärke ${z.display_name}`,
           setup: (acc) => {
@@ -278,10 +218,6 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
       if (includeVolFan) {
         const fu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeLightFromFanV2:${z.zone_id}`);
-        this.log.info(`[DBG-H1] add volumeFan zone=${z.display_name} uuid=${fu}`);
-        // #region agent log
-        fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H1',location:'src/platform.ts:233',message:'adding volume fan accessory metadata',data:{zoneId:z.zone_id,zoneName:z.display_name,uuid:fu,kind:'volumeFan',category:'SPEAKER'},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         out.set(fu, {
           name: z.display_name,
           setup: (acc) => {
@@ -308,6 +244,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
 
     for (const z of zones) {
       const room = z.display_name;
+
       if (includeVolumeStepSwitches) {
         const volumeUuidUp = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeUp:${z.zone_id}`);
         out.set(volumeUuidUp, {
@@ -485,20 +422,13 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     try {
       const desired = this.desiredUuids();
       const visibleZones = this.roon.getZones().filter((z) => !this.excluded(z.display_name));
-      this.log.info(`[DBG-H2] sync desired=${desired.size} existing=${this.accessoryByUuid.size} visibleZones=${visibleZones.map((z) => z.display_name).join(',')}`);
-      // #region agent log
-      fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H2',location:'src/platform.ts:435',message:'syncAccessories desired/existing counts',data:{visibleZones:visibleZones.map((z)=>z.display_name),desiredCount:desired.size,existingCount:this.accessoryByUuid.size},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       this.log.info(
-        `RoonComplete: HomeKit sync - ${visibleZones.length} Roon zone(s) -> ${desired.size} accessories (zones + optional radio/playlist/genre switches). If 0 zones, Roon has no zones or all are in excludeZones.`,
+        `RoonComplete: HomeKit sync — ${visibleZones.length} zone(s) → ${desired.size} accessories`,
       );
 
       for (const [uuid, acc] of [...this.accessoryByUuid.entries()]) {
         if (!desired.has(uuid)) {
-          this.log.info(`[DBG-H3] unregister stale uuid=${uuid} name=${acc.displayName} kind=${String(acc.context?.kind ?? '')}`);
-          // #region agent log
-          fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H3',location:'src/platform.ts:444',message:'unregistering stale accessory',data:{uuid,displayName:acc.displayName,contextKind:acc.context?.kind},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
+          this.log.info(`RoonComplete: removing stale accessory "${acc.displayName}"`);
           this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [acc]);
           this.accessoryByUuid.delete(uuid);
           this.wired.delete(uuid);
@@ -510,27 +440,17 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
         if (!acc) {
           acc = new this.api.platformAccessory(meta.name, uuid);
           this.accessoryByUuid.set(uuid, acc);
-          this.log.info(`[DBG-H10] register bridged accessory uuid=${uuid} name=${meta.name}`);
-          // #region agent log
-          fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-3',hypothesisId:'H4',location:'src/platform.ts:syncAccessories',message:'registering bridged platform accessory',data:{uuid,name:meta.name},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
           meta.setup(acc);
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [acc]);
         } else {
           acc.displayName = meta.name;
-          this.log.info(
-            `[DBG-H14] reuse accessory uuid=${uuid} name=${meta.name} kind=${String(acc.context?.kind ?? '')} wired=${this.wired.has(uuid)}`,
-          );
-          // #region agent log
-          fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-5',hypothesisId:'H5',location:'src/platform.ts:syncAccessories(reuse)',message:'reusing cached accessory',data:{uuid,name:meta.name,contextKind:String(acc.context?.kind ?? ''),wired:this.wired.has(uuid)},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
           if (!this.wired.has(uuid)) {
             meta.setup(acc);
           }
         }
       }
     } catch (e) {
-      this.log.error('RoonComplete: syncAccessories failed (accessories may be missing in Home):', e);
+      this.log.error('RoonComplete: syncAccessories failed:', e);
       throw e;
     }
   }
