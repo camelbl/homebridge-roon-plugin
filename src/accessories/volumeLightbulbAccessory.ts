@@ -20,32 +20,35 @@ export class VolumeLightbulbAccessory {
     this.accessory
       .getService(Svc.AccessoryInformation)!
       .setCharacteristic(Characteristic.Manufacturer, 'Roon')
-      .setCharacteristic(Characteristic.Model, 'Volume (Dimmer)');
+      .setCharacteristic(Characteristic.Model, 'Volume (Speaker)');
 
-    let svc = this.accessory.getService(Svc.Lightbulb) as Service | undefined;
+    let svc = this.accessory.getService(Svc.Speaker) as Service | undefined;
     if (!svc) {
-      svc = this.accessory.addService(Svc.Lightbulb, name);
+      svc = this.accessory.addService(Svc.Speaker, name);
     }
 
-    svc.getCharacteristic(Characteristic.On)
+    // Active indicates playback state (playing vs not playing).
+    svc.getCharacteristic(Characteristic.Active)
       .onGet(() => {
         const z = this.roon.getZones().find((z) => z.zone_id === this.zoneId);
-        // Tile "On" represents playback state, not mute.
-        return (z?.state ?? 'stopped') === 'playing';
+        return (z?.state ?? 'stopped') === 'playing'
+          ? Characteristic.Active.ACTIVE
+          : Characteristic.Active.INACTIVE;
       })
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
-        const on = value as boolean;
-        if (on) {
-          // Ensure volume changes during stop/mute don't leave us muted.
+        const active = value === Characteristic.Active.ACTIVE;
+        if (active) {
           this.roon.setMuted(this.zoneId, false);
           this.roon.play(this.zoneId);
         } else {
           this.roon.stop(this.zoneId);
+          this.roon.setMuted(this.zoneId, true);
         }
       });
 
-    svc.getCharacteristic(Characteristic.Brightness)
+    // Volume slider.
+    svc.getCharacteristic(Characteristic.Volume)
       .onGet(() => {
         const z = this.roon.getZones().find((z) => z.zone_id === this.zoneId);
         return z?.volumePercent ?? 0;
@@ -53,6 +56,17 @@ export class VolumeLightbulbAccessory {
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
         this.roon.setVolume(this.zoneId, value as number);
+      });
+
+    // Required by the HAP Speaker service.
+    svc.getCharacteristic(Characteristic.Mute)
+      .onGet(() => {
+        const z = this.roon.getZones().find((z) => z.zone_id === this.zoneId);
+        return z?.isMuted ?? false;
+      })
+      .onSet((value: CharacteristicValue) => {
+        if (this.updatingFromRoon) return;
+        this.roon.setMuted(this.zoneId, value as boolean);
       });
 
     this.roon.onZoneUpdate((z) => {
@@ -73,8 +87,11 @@ export class VolumeLightbulbAccessory {
   ): void {
     this.updatingFromRoon = true;
     try {
-      svc.getCharacteristic(Characteristic.On)!.updateValue(z.state === 'playing');
-      svc.getCharacteristic(Characteristic.Brightness)!.updateValue(z.volumePercent);
+      svc.getCharacteristic(Characteristic.Active)!.updateValue(
+        z.state === 'playing' ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE,
+      );
+      svc.getCharacteristic(Characteristic.Volume)!.updateValue(z.volumePercent);
+      svc.getCharacteristic(Characteristic.Mute)!.updateValue(z.isMuted);
     } finally {
       this.updatingFromRoon = false;
     }

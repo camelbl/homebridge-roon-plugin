@@ -202,7 +202,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
           name: `Lautstärke ${z.display_name}`,
           setup: (acc) => {
             acc.context = { kind: 'volumeLightbulb', zoneId: z.zone_id, zoneDisplayName: z.display_name };
-            acc.category = Categories.LIGHTBULB;
+            acc.category = Categories.SPEAKER;
             if (!this.wired.has(vu)) {
               this.wired.add(vu);
               new VolumeLightbulbAccessory(this.log, this.api, acc, this.roon!, z.zone_id);
@@ -217,7 +217,7 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
           name: `Lautstärke (Fan) ${z.display_name}`,
           setup: (acc) => {
             acc.context = { kind: 'volumeFan', zoneId: z.zone_id, zoneDisplayName: z.display_name };
-            acc.category = Categories.FAN;
+            acc.category = Categories.SPEAKER;
             if (!this.wired.has(fu)) {
               this.wired.add(fu);
               new VolumeFanAccessory(this.log, this.api, acc, this.roon!, z.zone_id);

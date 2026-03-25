@@ -20,18 +20,20 @@ export class VolumeFanAccessory {
     this.accessory
       .getService(Svc.AccessoryInformation)!
       .setCharacteristic(Characteristic.Manufacturer, 'Roon')
-      .setCharacteristic(Characteristic.Model, 'Volume (Fan)');
+      .setCharacteristic(Characteristic.Model, 'Volume (Speaker)');
 
-    let svc = this.accessory.getService(Svc.Fanv2) as Service | undefined;
+    let svc = this.accessory.getService(Svc.Speaker) as Service | undefined;
     if (!svc) {
-      svc = this.accessory.addService(Svc.Fanv2, name);
+      svc = this.accessory.addService(Svc.Speaker, name);
     }
 
+    // Active indicates playback state (playing vs not playing).
     svc.getCharacteristic(Characteristic.Active)
       .onGet(() => {
         const z = this.roon.getZones().find((z) => z.zone_id === this.zoneId);
-        // Tile "Active" represents playback state, not mute.
-        return (z?.state ?? 'stopped') === 'playing' ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE;
+        return (z?.state ?? 'stopped') === 'playing'
+          ? Characteristic.Active.ACTIVE
+          : Characteristic.Active.INACTIVE;
       })
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
@@ -41,10 +43,11 @@ export class VolumeFanAccessory {
           this.roon.play(this.zoneId);
         } else {
           this.roon.stop(this.zoneId);
+          this.roon.setMuted(this.zoneId, true);
         }
       });
 
-    svc.getCharacteristic(Characteristic.RotationSpeed)
+    svc.getCharacteristic(Characteristic.Volume)
       .onGet(() => {
         const z = this.roon.getZones().find((z) => z.zone_id === this.zoneId);
         return z?.volumePercent ?? 0;
@@ -52,6 +55,17 @@ export class VolumeFanAccessory {
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
         this.roon.setVolume(this.zoneId, value as number);
+      });
+
+    // Required by the HAP Speaker service.
+    svc.getCharacteristic(Characteristic.Mute)
+      .onGet(() => {
+        const z = this.roon.getZones().find((z) => z.zone_id === this.zoneId);
+        return z?.isMuted ?? false;
+      })
+      .onSet((value: CharacteristicValue) => {
+        if (this.updatingFromRoon) return;
+        this.roon.setMuted(this.zoneId, value as boolean);
       });
 
     this.roon.onZoneUpdate((z) => {
@@ -75,7 +89,8 @@ export class VolumeFanAccessory {
       svc.getCharacteristic(Characteristic.Active)!.updateValue(
         z.state === 'playing' ? Characteristic.Active.ACTIVE : Characteristic.Active.INACTIVE,
       );
-      svc.getCharacteristic(Characteristic.RotationSpeed)!.updateValue(z.volumePercent);
+      svc.getCharacteristic(Characteristic.Volume)!.updateValue(z.volumePercent);
+      svc.getCharacteristic(Characteristic.Mute)!.updateValue(z.isMuted);
     } finally {
       this.updatingFromRoon = false;
     }
