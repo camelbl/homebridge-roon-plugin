@@ -1,6 +1,5 @@
 import type { API, Logger, PlatformAccessory } from 'homebridge';
-import type { CharacteristicValue } from 'hap-nodejs';
-import type { Service } from 'hap-nodejs';
+import type { CharacteristicValue, Service } from 'homebridge';
 import { RoonConnection, Zone } from '../roonConnection';
 
 export class ZoneAccessory {
@@ -45,7 +44,7 @@ export class ZoneAccessory {
     z: Zone,
     tv: Service,
     tvSpeaker: Service,
-    Characteristic: typeof import('hap-nodejs').Characteristic,
+    Characteristic: typeof import('homebridge').Characteristic,
   ): void {
     this.updatingFromRoon = true;
     try {
@@ -61,8 +60,8 @@ export class ZoneAccessory {
 
   private setupTelevision(
     name: string,
-    Svc: typeof import('hap-nodejs').Service,
-    Characteristic: typeof import('hap-nodejs').Characteristic,
+    Svc: typeof import('homebridge').Service,
+    Characteristic: typeof import('homebridge').Characteristic,
   ): void {
     let tv = this.accessory.getService(Svc.Television);
     if (!tv) {
@@ -135,8 +134,8 @@ export class ZoneAccessory {
 
   private setupSmartSpeaker(
     name: string,
-    Svc: typeof import('hap-nodejs').Service,
-    Characteristic: typeof import('hap-nodejs').Characteristic,
+    Svc: typeof import('homebridge').Service,
+    Characteristic: typeof import('homebridge').Characteristic,
   ): void {
     let s = this.accessory.getService(Svc.SmartSpeaker);
     if (!s) s = this.accessory.addService(Svc.SmartSpeaker, name);
@@ -182,8 +181,8 @@ export class ZoneAccessory {
 
   private setupSpeaker(
     name: string,
-    Svc: typeof import('hap-nodejs').Service,
-    Characteristic: typeof import('hap-nodejs').Characteristic,
+    Svc: typeof import('homebridge').Service,
+    Characteristic: typeof import('homebridge').Characteristic,
   ): void {
     let s = this.accessory.getService(Svc.Speaker);
     if (!s) s = this.accessory.addService(Svc.Speaker, name);

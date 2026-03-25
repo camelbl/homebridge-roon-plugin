@@ -1,5 +1,5 @@
 import type { API, Logger, PlatformAccessory } from 'homebridge';
-import type { CharacteristicValue } from 'hap-nodejs';
+import type { CharacteristicValue } from 'homebridge';
 import { RoonConnection } from '../roonConnection';
 
 export class GenreAccessory {

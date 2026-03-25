@@ -173,7 +173,11 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     if (!this.roon) return out;
 
     const zones = this.roon.getZones().filter((z) => !this.excluded(z.display_name));
-    const { Categories } = this.api.hap.Accessory;
+    // Categories moved from Accessory.Categories (HAP-NodeJS v0/HB v1) to hap.Categories (HAP-NodeJS v1/HB v2).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hap = this.api.hap as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Categories = hap.Categories ?? (hap.Accessory as any).Categories;
     const zoneDeviceType = this.config.zoneDeviceType ?? 'tv';
     const includeVolLightbulb = this.config.includeVolumeLightbulb === true;
     const includeVolFan = this.config.includeVolumeFan === true;

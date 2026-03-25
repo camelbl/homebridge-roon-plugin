@@ -1,5 +1,5 @@
 import type { API, Logger, PlatformAccessory } from 'homebridge';
-import type { CharacteristicValue, Service } from 'hap-nodejs';
+import type { CharacteristicValue, Service } from 'homebridge';
 import { RoonConnection, Zone } from '../roonConnection';
 
 export class VolumeFanAccessory {
@@ -81,7 +81,7 @@ export class VolumeFanAccessory {
   private applyZone(
     z: Zone,
     svc: Service,
-    Characteristic: typeof import('hap-nodejs').Characteristic,
+    Characteristic: typeof import('homebridge').Characteristic,
   ): void {
     this.updatingFromRoon = true;
     try {

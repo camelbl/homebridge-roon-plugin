@@ -1,5 +1,5 @@
 import type { API, Logger, PlatformAccessory } from 'homebridge';
-import type { CharacteristicValue, Service } from 'hap-nodejs';
+import type { CharacteristicValue, Service } from 'homebridge';
 import { RoonConnection, Zone } from '../roonConnection';
 
 export class VolumeLightbulbAccessory {
@@ -22,11 +22,11 @@ export class VolumeLightbulbAccessory {
     this.accessory
       .getService(Svc.AccessoryInformation)!
       .setCharacteristic(Characteristic.Manufacturer, 'Roon')
-      .setCharacteristic(Characteristic.Model, 'Volume (SmartSpeaker)');
+      .setCharacteristic(Characteristic.Model, 'Volume');
 
-    // Cleanup from older versions (when this accessory was implemented as Lightbulb/Fan/Speaker).
-    const staleServices = [Svc.Lightbulb, Svc.Fanv2, Svc.Speaker].map((T) => this.accessory.getService(T));
-    for (const s of staleServices) {
+    // Cleanup from older service types.
+    for (const SvcType of [Svc.Lightbulb, Svc.Fanv2, Svc.Speaker]) {
+      const s = this.accessory.getService(SvcType);
       if (s) this.accessory.removeService(s);
     }
 
@@ -36,35 +36,26 @@ export class VolumeLightbulbAccessory {
     }
     svc.setPrimaryService(true);
     svc.setCharacteristic(Characteristic.ConfiguredName, name);
-    this.log.info(
-      `[DBG-H1] volumeLightbulb wiring zoneId=${this.zoneId} service=SmartSpeaker hadLightbulb=${!!staleServices[0]} hadFanv2=${!!staleServices[1]} hadSpeaker=${!!staleServices[2]}`,
-    );
-    this.log.info(
-      `[DBG-H8] volumeLightbulb service-map zoneId=${this.zoneId} services=${this.accessory.services.map((s) => s.UUID).join(',')} primaryUUID=${svc.UUID}`,
-    );
+
+    this.log.info(`RoonComplete: wiring SmartSpeaker volume tile zone="${name}" (${this.zoneId})`);
+
     const getZ = () => this.roon.getZones().find((z) => z.zone_id === this.zoneId);
 
-    const mapToCurrentMediaState = (z: Zone | undefined): number => {
-      const state = z?.state ?? 'stopped';
+    svc.getCharacteristic(Characteristic.CurrentMediaState).onGet(() => {
+      const state = getZ()?.state ?? 'stopped';
       if (state === 'playing') return Characteristic.CurrentMediaState.PLAY;
       if (state === 'paused') return Characteristic.CurrentMediaState.PAUSE;
       if (state === 'loading') return Characteristic.CurrentMediaState.LOADING;
       return Characteristic.CurrentMediaState.STOP;
-    };
-
-    const mapToTargetMediaState = (z: Zone | undefined): number => {
-      const state = z?.state ?? 'stopped';
-      if (state === 'playing') return Characteristic.TargetMediaState.PLAY;
-      if (state === 'paused') return Characteristic.TargetMediaState.PAUSE;
-      // TargetMediaState only supports PLAY/PAUSE/STOP (0..2), not LOADING.
-      return Characteristic.TargetMediaState.STOP;
-    };
-
-    // Required by HAP SmartSpeaker.
-    svc.getCharacteristic(Characteristic.CurrentMediaState).onGet(() => mapToCurrentMediaState(getZ()));
+    });
 
     svc.getCharacteristic(Characteristic.TargetMediaState)
-      .onGet(() => mapToTargetMediaState(getZ()))
+      .onGet(() => {
+        const state = getZ()?.state ?? 'stopped';
+        if (state === 'playing') return Characteristic.TargetMediaState.PLAY;
+        if (state === 'paused') return Characteristic.TargetMediaState.PAUSE;
+        return Characteristic.TargetMediaState.STOP;
+      })
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
         const target = value as number;
@@ -73,23 +64,15 @@ export class VolumeLightbulbAccessory {
         else this.roon.stop(this.zoneId);
       });
 
-    // Optional: volume slider.
     svc.getCharacteristic(Characteristic.Volume)
-      .onGet(() => {
-        const z = getZ();
-        return z?.volumePercent ?? 0;
-      })
+      .onGet(() => getZ()?.volumePercent ?? 0)
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
         this.roon.setVolume(this.zoneId, value as number);
       });
 
-    // Optional: mute toggle.
     svc.getCharacteristic(Characteristic.Mute)
-      .onGet(() => {
-        const z = getZ();
-        return z?.isMuted ?? false;
-      })
+      .onGet(() => getZ()?.isMuted ?? false)
       .onSet((value: CharacteristicValue) => {
         if (this.updatingFromRoon) return;
         this.roon.setMuted(this.zoneId, value as boolean);
@@ -109,24 +92,19 @@ export class VolumeLightbulbAccessory {
   private applyZone(
     z: Zone,
     svc: Service,
-    Characteristic: typeof import('hap-nodejs').Characteristic,
+    Characteristic: typeof import('homebridge').Characteristic,
   ): void {
     this.updatingFromRoon = true;
     try {
       const currentState =
-        z.state === 'playing'
-          ? Characteristic.CurrentMediaState.PLAY
-          : z.state === 'paused'
-            ? Characteristic.CurrentMediaState.PAUSE
-            : z.state === 'loading'
-              ? Characteristic.CurrentMediaState.LOADING
-              : Characteristic.CurrentMediaState.STOP;
+        z.state === 'playing' ? Characteristic.CurrentMediaState.PLAY :
+        z.state === 'paused'  ? Characteristic.CurrentMediaState.PAUSE :
+        z.state === 'loading' ? Characteristic.CurrentMediaState.LOADING :
+                                Characteristic.CurrentMediaState.STOP;
       const targetState =
-        z.state === 'playing'
-          ? Characteristic.TargetMediaState.PLAY
-          : z.state === 'paused'
-            ? Characteristic.TargetMediaState.PAUSE
-            : Characteristic.TargetMediaState.STOP;
+        z.state === 'playing' ? Characteristic.TargetMediaState.PLAY :
+        z.state === 'paused'  ? Characteristic.TargetMediaState.PAUSE :
+                                Characteristic.TargetMediaState.STOP;
       svc.getCharacteristic(Characteristic.CurrentMediaState)!.updateValue(currentState);
       svc.getCharacteristic(Characteristic.TargetMediaState)!.updateValue(targetState);
       svc.getCharacteristic(Characteristic.Volume)!.updateValue(z.volumePercent);
@@ -136,4 +114,3 @@ export class VolumeLightbulbAccessory {
     }
   }
 }
-
