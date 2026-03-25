@@ -32,6 +32,9 @@ export class ZoneAccessory {
       const s = this.accessory.getService(SvcType);
       if (s) this.accessory.removeService(s);
     }
+    // #region agent log
+    fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H4',location:'src/accessories/zoneAccessory.ts:36',message:'zone accessory setup branch',data:{zoneId:this.zoneId,deviceType:this.deviceType,displayName:name},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
 
     if (this.deviceType === 'tv') {
       this.setupTelevision(name, Svc, Characteristic);
