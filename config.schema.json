@@ -59,10 +59,10 @@
         "description": "Adds the main volume tile per zone."
       },
       "includeZoneControllers": {
-        "title": "Show per-zone play/pause tile (minimal UI off by default)",
+        "title": "Zone controller tile per zone (Audio Receiver / TV icon with play/stop)",
         "type": "boolean",
-        "default": false,
-        "description": "Expose the extra per-zone play/pause tile (TV service). Disable for a minimal speaker-only UI."
+        "default": true,
+        "description": "Expose a per-zone play/stop tile using the device type selected below. With audioReceiver: shows an AV-Receiver icon; volume is accessible via iOS Control Center. Combine with includeVolumeFan for a volume slider tile alongside."
       },
       "includeVolumeStepSwitches": {
         "title": "Show per-zone +5/-5 volume step switches (minimal UI off by default)",
@@ -73,13 +73,14 @@
       "zoneDeviceType": {
         "title": "Zone device type (Home app grouping)",
         "type": "string",
-        "default": "tv",
+        "default": "audioReceiver",
         "oneOf": [
-          { "title": "TV (best compatibility)", "enum": ["tv"] },
+          { "title": "Audio Receiver (recommended: receiver icon + volume in Control Center)", "enum": ["audioReceiver"] },
+          { "title": "TV (compatible: TV icon + volume in Control Center)", "enum": ["tv"] },
           { "title": "Smart Speaker (may show as unsupported on some iOS)", "enum": ["smartSpeaker"] },
           { "title": "Speaker (may group differently / not show)", "enum": ["speaker"] }
         ],
-        "description": "How each Roon zone is represented in HomeKit. TV is most reliable in iOS Home under \"Lautsprecher & TVs\". SmartSpeaker/Speaker can look more correct but may appear as \"Nicht unterstützt\" depending on iOS/HomeKit version."
+        "description": "How each Roon zone is represented in HomeKit when includeZoneControllers is enabled. audioReceiver and tv both use the Television service (most compatible) – they differ only in the icon shown in Home. audioReceiver shows an AV-Receiver icon; tv shows a TV icon. Both expose volume control via the iOS Control Center remote. SmartSpeaker/Speaker require AirPlay 2 and typically appear as 'Nicht unterstützt' in Apple Home."
       },
       "radioPresetCount": {
         "title": "Radio preset count (top used)",

@@ -12,7 +12,7 @@ export class ZoneAccessory {
     private readonly accessory: PlatformAccessory,
     private readonly roon: RoonConnection,
     private readonly zoneId: string,
-    private readonly deviceType: 'tv' | 'smartSpeaker' | 'speaker' = 'tv',
+    private readonly deviceType: 'tv' | 'smartSpeaker' | 'speaker' | 'audioReceiver' = 'tv',
   ) {
     const { Service: Svc, Characteristic } = api.hap;
 
@@ -36,7 +36,7 @@ export class ZoneAccessory {
     fetch('http://127.0.0.1:7558/ingest/8b52b340-8ba1-49eb-88ff-74b8697313f8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'579cc3'},body:JSON.stringify({sessionId:'579cc3',runId:'run-1',hypothesisId:'H4',location:'src/accessories/zoneAccessory.ts:36',message:'zone accessory setup branch',data:{zoneId:this.zoneId,deviceType:this.deviceType,displayName:name},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
 
-    if (this.deviceType === 'tv') {
+    if (this.deviceType === 'tv' || this.deviceType === 'audioReceiver') {
       this.setupTelevision(name, Svc, Characteristic);
     } else if (this.deviceType === 'speaker') {
       this.setupSpeaker(name, Svc, Characteristic);
