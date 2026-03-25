@@ -61,7 +61,7 @@
       "includeZoneControllers": {
         "title": "Zone controller tile per zone (Audio Receiver / TV icon with play/stop)",
         "type": "boolean",
-        "default": true,
+        "default": false,
         "description": "Expose a per-zone play/stop tile using the device type selected below. With audioReceiver: shows an AV-Receiver icon; volume is accessible via iOS Control Center. Combine with includeVolumeFan for a volume slider tile alongside."
       },
       "includeVolumeStepSwitches": {
