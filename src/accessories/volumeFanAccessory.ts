@@ -22,6 +22,10 @@ export class VolumeFanAccessory {
       .setCharacteristic(Characteristic.Manufacturer, 'Roon')
       .setCharacteristic(Characteristic.Model, 'Volume (Speaker)');
 
+    // Cleanup from older versions (when this accessory was implemented as Fanv2).
+    const staleFan = this.accessory.getService(Svc.Fanv2);
+    if (staleFan) this.accessory.removeService(staleFan);
+
     let svc = this.accessory.getService(Svc.Speaker) as Service | undefined;
     if (!svc) {
       svc = this.accessory.addService(Svc.Speaker, name);

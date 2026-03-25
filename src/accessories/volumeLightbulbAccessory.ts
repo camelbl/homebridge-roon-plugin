@@ -22,6 +22,10 @@ export class VolumeLightbulbAccessory {
       .setCharacteristic(Characteristic.Manufacturer, 'Roon')
       .setCharacteristic(Characteristic.Model, 'Volume (Speaker)');
 
+    // Cleanup from older versions (when this accessory was implemented as Lightbulb).
+    const staleLightbulb = this.accessory.getService(Svc.Lightbulb);
+    if (staleLightbulb) this.accessory.removeService(staleLightbulb);
+
     let svc = this.accessory.getService(Svc.Speaker) as Service | undefined;
     if (!svc) {
       svc = this.accessory.addService(Svc.Speaker, name);
