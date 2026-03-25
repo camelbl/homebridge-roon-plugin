@@ -60,7 +60,7 @@ sock.on('error', (e) => {
 });
 
 // Also check if the plugin's ws module is reachable
-const pluginSrc = '/var/lib/homebridge/homebridge-roon-complete-src';
+const pluginSrc = '/var/lib/homebridge/homebridge-roon-control-src';
 try {
   const ws = require(path.join(pluginSrc, 'node_modules', 'ws'));
   console.log('Plugin ws module: found at', path.join(pluginSrc, 'node_modules', 'ws'));

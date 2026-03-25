@@ -120,10 +120,10 @@ export class RoonConnection extends EventEmitter {
     this.roon = new RoonApi({
       extension_id: 'com.homebridge.roon.control',
       display_name: 'Homebridge Roon Control',
-      display_version: '1.0.0',
+      display_version: '1.3.0',
       publisher: 'homebridge-roon-control',
       email: 'none@example.com',
-      website: 'https://github.com/homebridge/homebridge',
+      website: 'https://github.com/camelbl/homebridge-roon-plugin',
       log_level: process.env.HOMEBRIDGE_ROON_DEBUG === '1' ? 'all' : 'none',
       ...(persist ?? {}),
       core_paired: (core: RoonConnection['core']) => {
@@ -157,12 +157,22 @@ export class RoonConnection extends EventEmitter {
     | undefined {
     if (!persistDir) return undefined;
     const stateFile = path.join(persistDir, 'homebridge-roon-control-roonstate.json');
+    const legacyStateFile = path.join(persistDir, 'homebridge-roon-complete-roonstate.json');
     let migrated = false;
 
     const migrateFromHomebridgeConfigOnce = (): void => {
       if (migrated) return;
       migrated = true;
       if (fs.existsSync(stateFile)) return;
+      // Migrate from legacy state file (homebridge-roon-complete → homebridge-roon-control).
+      if (fs.existsSync(legacyStateFile)) {
+        try {
+          fs.copyFileSync(legacyStateFile, stateFile);
+          return;
+        } catch {
+          /* ignore, fall through to config.json migration */
+        }
+      }
       try {
         const cfgPath = path.join(persistDir, 'config.json');
         const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8')) as { roonstate?: unknown };

@@ -1,9 +1,8 @@
 {
   "pluginAlias": "RoonControl",
   "pluginType": "platform",
-  "singular": true,
-  "headerDisplay": "Connect Roon music zones to Apple HomeKit. After saving, open **Roon → Settings → Extensions** and enable **Homebridge Roon Control**.",
-  "footerDisplay": "See the [README](https://github.com/camelbl/homebridge-roon-plugin#readme) for Docker setup and troubleshooting.",
+  "singularDisplayName": "Roon Control",
+  "headerDisplay": true,
   "schema": {
     "type": "object",
     "properties": {
@@ -17,7 +16,7 @@
         "title": "Roon Core IP / Hostname",
         "type": "string",
         "placeholder": "Leave empty for automatic discovery",
-        "description": "Fixed IP or hostname of the Roon Core. Leave empty for UDP auto-discovery. Docker: use host.docker.internal (requires extra_hosts: host.docker.internal:host-gateway in docker-compose.yml)."
+        "description": "Roon Core reachable from Homebridge. Empty = UDP discovery. Docker on same host as Core: LAN IP (e.g. 192.168.1.x) often fails; use host.docker.internal (compose: extra_hosts host.docker.internal:host-gateway) or default-gateway IP from inside the container, or leave empty to try discovery."
       },
       "roonPort": {
         "title": "Roon WebSocket Port",
@@ -30,138 +29,87 @@
         "title": "Exclude zones",
         "type": "array",
         "items": { "type": "string" },
-        "description": "Zone display names (exact match) that should not appear in HomeKit."
+        "description": "Roon zone display names that should not appear in HomeKit."
       },
-      "includeVolumeFan": {
-        "title": "Volume slider tile per zone",
+      "includeRadio": {
+        "title": "Include Internet Radio switches",
         "type": "boolean",
-        "default": true,
-        "description": "Adds a volume slider tile per zone (Brightness = volume, On = play, Off = stop). Shows under 'Licht' in Home."
+        "default": false
       },
-      "includeZoneControllers": {
-        "title": "Zone controller tile per zone",
+      "includePlaylists": {
+        "title": "Include Playlist switches",
+        "type": "boolean",
+        "default": false
+      },
+      "includeGenres": {
+        "title": "Include Genre switches",
+        "type": "boolean",
+        "default": false
+      },
+      "includeVolumeLightbulb": {
+        "title": "Extra volume tile variant (off by default)",
         "type": "boolean",
         "default": false,
-        "description": "Adds a play/stop tile per zone with the icon selected below. Shows under 'Lautsprecher & TVs' in Home. Volume accessible via iOS Control Center."
+        "description": "Adds an additional volume tile per zone. Turn this off for a minimal HomeKit UI."
+      },
+      "includeVolumeFan": {
+        "title": "Volume tile (speaker) per zone",
+        "type": "boolean",
+        "default": true,
+        "description": "Adds the main volume tile per zone."
+      },
+      "includeZoneControllers": {
+        "title": "Zone controller tile per zone (Audio Receiver / TV icon with play/stop)",
+        "type": "boolean",
+        "default": false,
+        "description": "Expose a per-zone play/stop tile using the device type selected below. With audioReceiver: shows an AV-Receiver icon; volume is accessible via iOS Control Center. Combine with includeVolumeFan for a volume slider tile alongside."
+      },
+      "includeVolumeStepSwitches": {
+        "title": "Show per-zone +5/-5 volume step switches (minimal UI off by default)",
+        "type": "boolean",
+        "default": false,
+        "description": "Expose volume +/- buttons. Disable for a minimal UI."
       },
       "zoneDeviceType": {
-        "title": "Zone controller icon",
+        "title": "Zone device type (Home app grouping)",
         "type": "string",
         "default": "audioReceiver",
         "oneOf": [
-          { "title": "Audio Receiver (recommended)", "enum": ["audioReceiver"] },
-          { "title": "TV", "enum": ["tv"] },
-          { "title": "Smart Speaker (may show as unsupported)", "enum": ["smartSpeaker"] },
-          { "title": "Speaker (may not show)", "enum": ["speaker"] }
+          { "title": "Audio Receiver (recommended: receiver icon + volume in Control Center)", "enum": ["audioReceiver"] },
+          { "title": "TV (compatible: TV icon + volume in Control Center)", "enum": ["tv"] },
+          { "title": "Smart Speaker (may show as unsupported on some iOS)", "enum": ["smartSpeaker"] },
+          { "title": "Speaker (may group differently / not show)", "enum": ["speaker"] }
         ],
-        "description": "Icon shown in Home for zone controller tiles (only applies when zone controllers are enabled)."
-      },
-      "includeVolumeStepSwitches": {
-        "title": "Volume +5 / -5 step switches",
-        "type": "boolean",
-        "default": false,
-        "description": "Adds two switch tiles per zone for volume up/down in steps of 5 %."
-      },
-      "includeVolumeLightbulb": {
-        "title": "Second volume tile variant (legacy)",
-        "type": "boolean",
-        "default": false,
-        "description": "Adds a second volume slider variant. Not needed for most setups."
-      },
-      "includeRadio": {
-        "title": "Internet Radio switches",
-        "type": "boolean",
-        "default": false,
-        "description": "Adds a switch tile per radio station per zone. Requires Roon browse access."
+        "description": "How each Roon zone is represented in HomeKit when includeZoneControllers is enabled. audioReceiver and tv both use the Television service (most compatible) – they differ only in the icon shown in Home. audioReceiver shows an AV-Receiver icon; tv shows a TV icon. Both expose volume control via the iOS Control Center remote. SmartSpeaker/Speaker require AirPlay 2 and typically appear as 'Nicht unterstützt' in Apple Home."
       },
       "radioPresetCount": {
-        "title": "Max radio stations",
+        "title": "Radio preset count (top used)",
         "type": "integer",
         "default": 5,
         "minimum": 0,
         "maximum": 50,
-        "description": "Number of radio stations per zone (0 = all)."
+        "description": "How many radio stations to expose as presets (per zone). 0 = expose all stations (can create many tiles)."
+      },
+      "genrePresetCount": {
+        "title": "Genre preset count (top used)",
+        "type": "integer",
+        "default": 5,
+        "minimum": 0,
+        "maximum": 50,
+        "description": "How many genres to expose as presets (per zone). 0 = expose all genres (can create many tiles)."
       },
       "radioStations": {
         "title": "Radio stations filter",
         "type": "array",
         "items": { "type": "string" },
-        "description": "If set, only these station names are exposed (exact match). Leave empty to use max count above."
-      },
-      "includePlaylists": {
-        "title": "Playlist switches",
-        "type": "boolean",
-        "default": false,
-        "description": "Adds a switch tile per playlist per zone."
+        "description": "Empty = all stations. Otherwise only listed station names."
       },
       "playlists": {
         "title": "Playlists filter",
         "type": "array",
         "items": { "type": "string" },
-        "description": "If set, only these playlist names are exposed. Leave empty for all."
-      },
-      "includeGenres": {
-        "title": "Genre switches",
-        "type": "boolean",
-        "default": false,
-        "description": "Adds a switch tile per genre per zone."
-      },
-      "genrePresetCount": {
-        "title": "Max genres",
-        "type": "integer",
-        "default": 5,
-        "minimum": 0,
-        "maximum": 50,
-        "description": "Number of genres per zone (0 = all)."
+        "description": "Empty = all playlists. Otherwise only listed playlist names."
       }
     }
-  },
-  "form": [
-    {
-      "type": "fieldset",
-      "title": "Roon Core connection",
-      "expandable": false,
-      "items": ["roonHost", "roonPort", "excludeZones"]
-    },
-    {
-      "type": "fieldset",
-      "title": "Volume sliders",
-      "expandable": false,
-      "items": ["includeVolumeFan"]
-    },
-    {
-      "type": "fieldset",
-      "title": "Zone controller tiles",
-      "expandable": false,
-      "items": ["includeZoneControllers", "zoneDeviceType"]
-    },
-    {
-      "type": "fieldset",
-      "title": "Internet Radio",
-      "expandable": true,
-      "expanded": false,
-      "items": ["includeRadio", "radioPresetCount", "radioStations"]
-    },
-    {
-      "type": "fieldset",
-      "title": "Playlists",
-      "expandable": true,
-      "expanded": false,
-      "items": ["includePlaylists", "playlists"]
-    },
-    {
-      "type": "fieldset",
-      "title": "Genres",
-      "expandable": true,
-      "expanded": false,
-      "items": ["includeGenres", "genrePresetCount"]
-    },
-    {
-      "type": "fieldset",
-      "title": "Advanced",
-      "expandable": true,
-      "expanded": false,
-      "items": ["includeVolumeStepSwitches", "includeVolumeLightbulb"]
-    }
-  ]
+  }
 }

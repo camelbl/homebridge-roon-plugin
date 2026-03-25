@@ -19,7 +19,7 @@ if (!host || !basePath) {
 }
 
 const root = path.join(__dirname, '..');
-const remoteDir = `${basePath.replace(/\/$/, '')}/homebridge-roon-complete/`;
+const remoteDir = `${basePath.replace(/\/$/, '')}/homebridge-roon-control/`;
 const target = `${user}@${host}:${remoteDir}`;
 
 function shellQuote(s) {
