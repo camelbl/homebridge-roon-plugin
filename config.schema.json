@@ -46,6 +46,18 @@
         "type": "boolean",
         "default": true
       },
+      "includeVolumeLightbulb": {
+        "title": "Extra volume slider (Dimmer/Lightbulb) per zone",
+        "type": "boolean",
+        "default": true,
+        "description": "Adds a separate Lightbulb tile per zone. Brightness = volume (0–100), On = mute toggle. Useful if iOS does not show the TV speaker volume slider."
+      },
+      "includeVolumeFan": {
+        "title": "Extra volume slider (Fan) per zone",
+        "type": "boolean",
+        "default": true,
+        "description": "Adds a separate Fan tile per zone. RotationSpeed = volume (0–100), Active = mute toggle. Useful alternative slider presentation."
+      },
       "zoneDeviceType": {
         "title": "Zone device type (Home app grouping)",
         "type": "string",

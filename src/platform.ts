@@ -5,6 +5,8 @@ import { ZoneAccessory } from './accessories/zoneAccessory';
 import { RadioAccessory } from './accessories/radioAccessory';
 import { PlaylistAccessory } from './accessories/playlistAccessory';
 import { GenreAccessory } from './accessories/genreAccessory';
+import { VolumeLightbulbAccessory } from './accessories/volumeLightbulbAccessory';
+import { VolumeFanAccessory } from './accessories/volumeFanAccessory';
 
 export interface RoonCompleteConfig extends PlatformConfig {
   roonHost?: string;
@@ -172,6 +174,8 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
     const zones = this.roon.getZones().filter((z) => !this.excluded(z.display_name));
     const { Categories } = this.api.hap.Accessory;
     const zoneDeviceType = this.config.zoneDeviceType ?? 'tv';
+    const includeVolLightbulb = this.config.includeVolumeLightbulb === true;
+    const includeVolFan = this.config.includeVolumeFan === true;
 
     for (const z of zones) {
       const zu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:zone:${z.zone_id}`);
@@ -191,6 +195,36 @@ export class RoonCompletePlatform implements DynamicPlatformPlugin {
           }
         },
       });
+
+      if (includeVolLightbulb) {
+        const vu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeLightbulb:${z.zone_id}`);
+        out.set(vu, {
+          name: `Lautstärke ${z.display_name}`,
+          setup: (acc) => {
+            acc.context = { kind: 'volumeLightbulb', zoneId: z.zone_id, zoneDisplayName: z.display_name };
+            acc.category = Categories.LIGHTBULB;
+            if (!this.wired.has(vu)) {
+              this.wired.add(vu);
+              new VolumeLightbulbAccessory(this.log, this.api, acc, this.roon!, z.zone_id);
+            }
+          },
+        });
+      }
+
+      if (includeVolFan) {
+        const fu = this.api.hap.uuid.generate(`${PLUGIN_NAME}:volumeFan:${z.zone_id}`);
+        out.set(fu, {
+          name: `Lautstärke (Fan) ${z.display_name}`,
+          setup: (acc) => {
+            acc.context = { kind: 'volumeFan', zoneId: z.zone_id, zoneDisplayName: z.display_name };
+            acc.category = Categories.FAN;
+            if (!this.wired.has(fu)) {
+              this.wired.add(fu);
+              new VolumeFanAccessory(this.log, this.api, acc, this.roon!, z.zone_id);
+            }
+          },
+        });
+      }
     }
 
     const { Service, Characteristic } = this.api.hap;
